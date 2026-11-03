@@ -1,10 +1,11 @@
-import { mkdtemp, mkdir, readdir, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, rename, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Clip, CreateOptions, Generator } from "../shared/project";
 import { loadEnv } from "../../scripts/env.mjs";
 import { DEFAULT_VOICEBOX_URL, durationSeconds, elevenLabs, toWav, voicebox } from "../../scripts/providers.mjs";
-import { timeWords } from "./captions/timeWords";
+import { timeWords, type TimedCaptions } from "./captions/timeWords";
+import { speechEnd } from "./captions/trim";
 import { HttpError, ROOT, audioDir, audioUrl, checkSceneId } from "./paths";
 
 const MAX_UPLOAD_SECONDS = 90;
@@ -35,6 +36,17 @@ type Take = {
   readonly words: Clip["words"] | null;
 };
 
+// Cuts speech a generated voice added after the script ends; returns the clip's new length.
+const trimTail = async (wav: string, timed: TimedCaptions, duration: number): Promise<{ duration: number; timed: TimedCaptions }> => {
+  const cut = timed.timing === "whisper" ? speechEnd(timed.words, duration) : null;
+  if (cut === null) return { duration, timed };
+  const trimmed = `${wav}.trim.wav`;
+  toWav(wav, trimmed, cut);
+  await rename(trimmed, wav);
+  const length = durationSeconds(wav);
+  return { duration: length, timed: { ...timed, heard: timed.heard?.filter((w) => w.start < length) } };
+};
+
 // Each new take gets its own file name, so a clip can move between scenes without renaming.
 const finishClip = async ({ projectId, sceneId, raw, text, source, language, words }: Take): Promise<Clip> => {
   const dir = audioDir(projectId);
@@ -58,7 +70,10 @@ const finishClip = async ({ projectId, sceneId, raw, text, source, language, wor
   const src = audioUrl(projectId, file);
   if (words) return { duration, text, words, src, source, timing: "provider" };
   try {
-    return { duration, text, src, source, ...(await timeWords(wav, text, duration, language)) };
+    const timed = await timeWords(wav, text, duration, language);
+    // Uploads are the user's own takes and are never cut.
+    const final = source === "voicebox" ? await trimTail(wav, timed, duration) : { duration, timed };
+    return { duration: final.duration, text, src, source, ...final.timed };
   } catch (error) {
     pending.delete(file);
     await unlink(wav).catch(() => undefined);
