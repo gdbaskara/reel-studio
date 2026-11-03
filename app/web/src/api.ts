@@ -41,6 +41,13 @@ export const api = {
       headers: { "Content-Type": file.type || "application/octet-stream" },
       body: file,
     }),
+  uploadMusic: (id: string, file: File) =>
+    request<Project>(`/projects/${id}/music`, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+      body: file,
+    }),
+  removeMusic: (id: string) => request<Project>(`/projects/${id}/music`, { method: "DELETE" }),
   removeVoice: (id: string, sceneId: string) => request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, { method: "DELETE" }),
   render: (id: string) => request<Project>(`/projects/${id}/render`, { method: "POST" }),
   resetRender: (id: string) => request<Project>(`/projects/${id}/render/reset`, { method: "POST" }),

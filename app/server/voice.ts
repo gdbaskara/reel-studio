@@ -1,5 +1,4 @@
-import { mkdtemp, mkdir, readdir, rename, rm, unlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Clip, CreateOptions, Generator } from "../shared/project";
 import { loadEnv } from "../../scripts/env.mjs";
@@ -7,24 +6,12 @@ import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, durationSeconds, elevenLab
 import { timeWords, type TimedCaptions } from "./captions/timeWords";
 import { speechEnd } from "./captions/trim";
 import { HttpError, ROOT, audioDir, audioUrl, checkSceneId } from "./paths";
+import { dropPending, markPending, withTemp } from "./audioFiles";
 
 const MAX_UPLOAD_SECONDS = 90;
 export { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL };
 const DEFAULT_OMNIVOICE_VOICE = "wanita";
 type Language = CreateOptions["language"];
-
-// Audio files written but not yet saved into project.json; pruning must leave them alone.
-const pending = new Set<string>();
-export const releasePending = (clip: Clip) => pending.delete(clip.src.split("/").pop() ?? "");
-
-const withTemp = async <T>(fn: (dir: string) => Promise<T>): Promise<T> => {
-  const dir = await mkdtemp(join(tmpdir(), "reel-"));
-  try {
-    return await fn(dir);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-};
 
 type Take = {
   readonly projectId: string;
@@ -54,17 +41,17 @@ const finishClip = async ({ projectId, sceneId, raw, text, source, language, wor
   await mkdir(dir, { recursive: true });
   const file = `${checkSceneId(sceneId)}-${Date.now()}.wav`;
   const wav = join(dir, file);
-  pending.add(file);
+  markPending(file);
   try {
     toWav(raw, wav, MAX_UPLOAD_SECONDS + 1);
   } catch {
-    pending.delete(file);
+    dropPending(file);
     throw new HttpError(400, "Could not read that audio file. Try MP3, M4A or WAV.");
   }
   const duration = durationSeconds(wav);
   // ffmpeg stops reading just past the limit, so anything at the limit was longer.
   if (duration >= MAX_UPLOAD_SECONDS) {
-    pending.delete(file);
+    dropPending(file);
     await unlink(wav);
     throw new HttpError(400, `Keep each scene's audio under ${MAX_UPLOAD_SECONDS}s.`);
   }
@@ -76,7 +63,7 @@ const finishClip = async ({ projectId, sceneId, raw, text, source, language, wor
     const final = source !== "upload" ? await trimTail(wav, timed, duration) : { duration, timed };
     return { duration: final.duration, text, src, source, ...final.timed };
   } catch (error) {
-    pending.delete(file);
+    dropPending(file);
     await unlink(wav).catch(() => undefined);
     throw error;
   }
@@ -137,13 +124,4 @@ export const importUpload = (projectId: string, sceneId: string, body: Buffer, t
     await writeFile(raw, body);
     return finishClip({ projectId, sceneId, raw, text, source: "upload", language, words: null });
   });
-};
-
-// Deletes audio files no longer referenced by any scene.
-export const pruneAudio = async (projectId: string, keep: readonly Clip[]) => {
-  const dir = audioDir(projectId);
-  const used = new Set(keep.map((clip) => clip.src.split("/").pop()));
-  const files = await readdir(dir).catch(() => [] as string[]);
-  const stale = files.filter((f) => !used.has(f) && !pending.has(f));
-  await Promise.all(stale.map((f) => unlink(join(dir, f)).catch(() => undefined)));
 };

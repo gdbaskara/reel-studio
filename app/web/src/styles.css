@@ -94,8 +94,11 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .mode-toggle button.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 .player-frame { background: #000; border-radius: 12px; width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; }
 .side { display: grid; gap: 16px; }
-.inspector, .voice-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
-.voice-panel header { display: flex; justify-content: space-between; align-items: center; }
+.inspector, .voice-panel, .music-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+.voice-panel header, .music-panel header { display: flex; justify-content: space-between; align-items: center; }
+.music-panel { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; box-sizing: border-box; }
+.music-panel .clip small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slider input { width: 100%; }
 .voice-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .clip { display: grid; gap: 4px; }
 .clip audio { width: 100%; }

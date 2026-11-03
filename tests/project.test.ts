@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ClipSchema, CreateOptionsSchema, CreateRequestSchema, OMNIVOICE_VOICE, PlanSchema, SCENE_ID } from "../app/shared/project";
+import { ClipSchema, CreateOptionsSchema, CreateRequestSchema, MusicSchema, OMNIVOICE_VOICE, PlanSchema, SCENE_ID, UpdateRequestSchema, musicSettings } from "../app/shared/project";
 import { manualPlan } from "../app/server/planner";
 import { checkProjectId, checkSceneId } from "../app/server/paths";
 
@@ -36,6 +36,21 @@ describe("schemas", () => {
     const parsed = CreateOptionsSchema.parse({ ...options, voiceMode: "mac" });
     expect(parsed.voiceMode).toBe("voicebox");
     expect(ClipSchema.safeParse({ duration: 1, text: "a", words: [], src: "x", source: "mac" }).success).toBe(true);
+  });
+
+  it("validates background music and its settings", () => {
+    expect(MusicSchema.safeParse({ src: "/a/music-1.m4a", duration: 12, name: "Song" }).success).toBe(true);
+    expect(MusicSchema.safeParse({ src: "/a/music-1.m4a", duration: 0, name: "Song" }).success).toBe(false);
+    const plan = manualPlan("x", options);
+    const update = { plan, captions: true, palette: "green" };
+    expect(UpdateRequestSchema.safeParse({ ...update, music: { volume: 0.4, duck: false } }).success).toBe(true);
+    expect(UpdateRequestSchema.safeParse({ ...update, music: { volume: 1.5, duck: true } }).success).toBe(false);
+    expect(UpdateRequestSchema.safeParse(update).success).toBe(true);
+  });
+
+  it("falls back to default music settings for older projects", () => {
+    expect(musicSettings(CreateOptionsSchema.parse(options))).toEqual({ volume: 0.3, duck: true });
+    expect(musicSettings({ ...CreateOptionsSchema.parse(options), music: { volume: 0.8, duck: false } })).toEqual({ volume: 0.8, duck: false });
   });
 
   it("only allows known scene ids", () => {

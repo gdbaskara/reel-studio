@@ -28,6 +28,13 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     res.status(err.status).json({ error: err.message });
     return;
   }
+  // Body-parser rejects oversized or malformed bodies with a client status; pass that on instead of a 500.
+  const status = (err as { status?: unknown } | null)?.status;
+  if (typeof status === "number" && status >= 400 && status < 500) {
+    const message = status === 413 ? "That file is too big. Try an MP3 or M4A, or a shorter file." : "The request could not be read.";
+    res.status(status).json({ error: message });
+    return;
+  }
   console.error(err);
   res.status(500).json({ error: err instanceof Error ? err.message : "Unexpected error" });
 });

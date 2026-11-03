@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import express, { Router, type Request } from "express";
 import { z } from "zod";
-import { CreateRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, VOICEBOX_PROFILE, type Clip, type Project } from "../shared/project";
+import { CreateRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, VOICEBOX_PROFILE, musicSettings, type Clip, type Project } from "../shared/project";
 import { sceneIdsOf } from "../shared/toReel";
 import { loadEnv } from "../../scripts/env.mjs";
 import { listOmnivoiceVoices, listVoiceboxProfiles, omnivoiceRunning, voiceboxRunning } from "../../scripts/providers.mjs";
@@ -11,7 +11,9 @@ import { manualPlan, planWithAi } from "./planner";
 import { isRendering, startRender, videoPath } from "./render";
 import { withProjectLock } from "./lock";
 import { getProject, listProjects, newProjectId, saveProject, writeRender } from "./store";
-import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, generateVoice, importUpload, pruneAudio, releasePending } from "./voice";
+import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, generateVoice, importUpload } from "./voice";
+import { audioInUse, pruneAudio, releasePending } from "./audioFiles";
+import { importMusic, musicFileName } from "./music";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
 
 const ProviderSchema = z.object({
@@ -19,7 +21,8 @@ const ProviderSchema = z.object({
   voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional(),
   omnivoiceVoice: z.string().regex(OMNIVOICE_VOICE).optional(),
 });
-const AUDIO_FILE = /^(title|step-[1-9]|outro)-\d+\.wav$/;
+const MUSIC_UPLOAD_LIMIT = "60mb";
+const AUDIO_FILE = /^((title|step-[1-9]|outro)-\d+\.wav|music-\d+\.m4a)$/;
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
   const result = schema.safeParse(value);
@@ -37,8 +40,11 @@ const params = (req: Request) => ({
 
 // Old audio is only cleaned up when no render is reading it.
 const prune = async (project: Project) => {
-  if (!isRendering(project.id)) await pruneAudio(project.id, Object.values(project.voice));
+  if (isRendering(project.id)) return;
+  await pruneAudio(project.id, audioInUse(project));
 };
+
+const uploadBody = (req: Request): Buffer => (Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0));
 
 // Read-modify-write under the project lock, so slow voice work never overwrites newer edits.
 const mutate = (id: string, change: (project: Project) => Project) =>
@@ -123,7 +129,7 @@ export const apiRouter = (): Router => {
 
   api.put("/projects/:id", async (req, res) => {
     const { id } = params(req);
-    const { plan, captions, palette, sceneMap } = parse(UpdateRequestSchema, req.body);
+    const { plan, captions, palette, music, sceneMap } = parse(UpdateRequestSchema, req.body);
     const ids = sceneIdsOf(plan);
     const remap = (project: Project) => Object.fromEntries(
       ids.flatMap((newId) => {
@@ -143,7 +149,7 @@ export const apiRouter = (): Router => {
         name: plan.name,
         plan,
         voice: remap(project),
-        options: { ...project.options, captions, palette },
+        options: { ...project.options, captions, palette, ...(music ? { music } : {}) },
       })),
     );
   });
@@ -177,6 +183,29 @@ export const apiRouter = (): Router => {
       await mutate(id, (project) => {
         const { [sceneId]: _removed, ...voice } = project.voice;
         return { ...project, voice };
+      }),
+    );
+  });
+
+  // One music track per project; uploading again replaces it and keeps the volume settings.
+  // The limit fits a 5-minute WAV, the longest the server keeps.
+  api.put("/projects/:id/music", express.raw({ type: () => true, limit: MUSIC_UPLOAD_LIMIT }), async (req, res) => {
+    const { id } = params(req);
+    await getProject(id);
+    const music = await importMusic(id, uploadBody(req), musicFileName(req.get("x-file-name")));
+    try {
+      res.json(await mutate(id, (project) => ({ ...project, music, options: { ...project.options, music: musicSettings(project.options) } })));
+    } finally {
+      releasePending(music);
+    }
+  });
+
+  api.delete("/projects/:id/music", async (req, res) => {
+    const { id } = params(req);
+    res.json(
+      await mutate(id, (project) => {
+        const { music: _removed, ...rest } = project;
+        return rest;
       }),
     );
   });

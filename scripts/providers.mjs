@@ -145,6 +145,14 @@ export const toWav = (input, wavPath, maxSeconds = 600) =>
     timeout: 120_000,
   });
 
+// Music is kept as AAC: a few MB per song instead of tens of MB as WAV.
+export const toAac = (input, outPath, maxSeconds = 600) =>
+  execFileSync(
+    "ffmpeg",
+    ["-loglevel", "error", "-y", "-i", input, "-t", String(maxSeconds), "-vn", "-ac", "2", "-ar", "48000", "-c:a", "aac", "-b:a", "192k", outPath],
+    { timeout: 180_000 },
+  );
+
 export const durationSeconds = (wavPath) => {
   const match = execFileSync("afinfo", [wavPath], { encoding: "utf8" }).match(/estimated duration:\s*([\d.]+)/);
   if (!match) throw new Error(`Could not read duration of ${wavPath}`);

@@ -22,6 +22,9 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
   Voicebox, OmniVoice and uploaded clips are timed with a local Whisper (whisper.cpp) and aligned
   to the narration script, so captions keep your spelling but follow the real audio.
   Without Whisper, timings are estimated from word length.
+- **Background music** - upload one track for the whole reel. It fades in and out, repeats if
+  the reel is longer, and dips under the voice (ducking). Volume and ducking are set in the
+  editor. Use royalty-free music so Instagram does not mute the reel.
 - **Render** - one click to MP4 with progress, then download.
 
 ## Requirements
