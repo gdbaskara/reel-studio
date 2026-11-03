@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ClipSchema, CreateOptionsSchema, CreateRequestSchema, PlanSchema, SCENE_ID } from "../app/shared/project";
+import { ClipSchema, CreateOptionsSchema, CreateRequestSchema, OMNIVOICE_VOICE, PlanSchema, SCENE_ID } from "../app/shared/project";
 import { manualPlan } from "../app/server/planner";
 import { checkProjectId, checkSceneId } from "../app/server/paths";
 
@@ -19,6 +19,17 @@ describe("schemas", () => {
     const voicebox = { ...options, voiceMode: "voicebox", voiceboxProfile: "abc-123" };
     expect(CreateRequestSchema.safeParse({ prompt: "abc", options: voicebox }).success).toBe(true);
     expect(CreateRequestSchema.safeParse({ prompt: "abc", options: { ...voicebox, voiceboxProfile: "../x" } }).success).toBe(false);
+  });
+
+  it("accepts OmniVoice with an optional voice and rejects odd voice ids", () => {
+    const omni = { ...options, voiceMode: "omnivoice", omnivoiceVoice: "wanita" };
+    expect(CreateRequestSchema.safeParse({ prompt: "abc", options: omni }).success).toBe(true);
+    expect(CreateRequestSchema.safeParse({ prompt: "abc", options: { ...options, voiceMode: "omnivoice" } }).success).toBe(true);
+    for (const bad of ["../x", "Wanita", "a b", "", "x".repeat(41)]) {
+      expect(CreateRequestSchema.safeParse({ prompt: "abc", options: { ...omni, omnivoiceVoice: bad } }).success).toBe(false);
+    }
+    expect(OMNIVOICE_VOICE.test("my-voice-2")).toBe(true);
+    expect(ClipSchema.safeParse({ duration: 1, text: "a", words: [], src: "x", source: "omnivoice" }).success).toBe(true);
   });
 
   it("opens older projects that used the Mac voice", () => {

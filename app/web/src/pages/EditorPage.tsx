@@ -14,7 +14,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const editor = useProjectEditor(projectId);
   const [selected, setSelected] = useState(0);
   const [mode, setMode] = useState<"scene" | "full">("scene");
-  const { status, profiles } = useServices();
+  const { status, profiles, omnivoiceVoices } = useServices();
 
   const { project, preview, look } = editor;
   if (!project || !preview || !look) {
@@ -91,8 +91,9 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             sceneId={sceneId}
             status={status}
             profiles={profiles}
+            omnivoiceVoices={omnivoiceVoices}
             busy={editor.busy === `voice:${sceneId}`}
-            onGenerate={(provider, profile) => editor.generateVoice(sceneId, provider, profile)}
+            onGenerate={(provider, choice) => editor.generateVoice(sceneId, provider, choice)}
             onUpload={(file) => editor.uploadVoice(sceneId, file)}
             onRemove={() => editor.removeVoice(sceneId)}
           />

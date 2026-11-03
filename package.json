@@ -9,6 +9,8 @@
     "render:atlas": "remotion render src/index.ts Atlas out/atlas.mp4",
     "app": "tsx app/server/main.ts",
     "setup:whisper": "bash scripts/setup-whisper.sh",
+    "omnivoice": "bash scripts/run-omnivoice.sh",
+    "setup:omnivoice": "bash scripts/setup-omnivoice.sh",
     "test": "vitest run",
     "typecheck": "tsc -p ."
   },

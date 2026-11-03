@@ -3,13 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Clip, CreateOptions, Generator } from "../shared/project";
 import { loadEnv } from "../../scripts/env.mjs";
-import { DEFAULT_VOICEBOX_URL, durationSeconds, elevenLabs, toWav, voicebox } from "../../scripts/providers.mjs";
+import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, durationSeconds, elevenLabs, omnivoice, toWav, voicebox } from "../../scripts/providers.mjs";
 import { timeWords, type TimedCaptions } from "./captions/timeWords";
 import { speechEnd } from "./captions/trim";
 import { HttpError, ROOT, audioDir, audioUrl, checkSceneId } from "./paths";
 
 const MAX_UPLOAD_SECONDS = 90;
-export { DEFAULT_VOICEBOX_URL };
+export { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL };
+const DEFAULT_OMNIVOICE_VOICE = "wanita";
 type Language = CreateOptions["language"];
 
 // Audio files written but not yet saved into project.json; pruning must leave them alone.
@@ -71,8 +72,8 @@ const finishClip = async ({ projectId, sceneId, raw, text, source, language, wor
   if (words) return { duration, text, words, src, source, timing: "provider" };
   try {
     const timed = await timeWords(wav, text, duration, language);
-    // Uploads are the user's own takes and are never cut.
-    const final = source === "voicebox" ? await trimTail(wav, timed, duration) : { duration, timed };
+    // Generated clips without provider timings may run past the script; uploads are the user's own takes and are never cut.
+    const final = source !== "upload" ? await trimTail(wav, timed, duration) : { duration, timed };
     return { duration: final.duration, text, src, source, ...final.timed };
   } catch (error) {
     pending.delete(file);
@@ -83,13 +84,16 @@ const finishClip = async ({ projectId, sceneId, raw, text, source, language, wor
 
 const providerError = (error: unknown) => new HttpError(502, error instanceof Error ? error.message : String(error));
 
+// Per-request voice choices; each falls back to the project option, then .env.local.
+export type VoiceChoice = { readonly voiceboxProfile?: string; readonly omnivoiceVoice?: string };
+
 export const generateVoice = (
   projectId: string,
   sceneId: string,
   text: string,
   provider: Generator,
   language: Language,
-  voiceboxProfile?: string,
+  { voiceboxProfile, omnivoiceVoice }: VoiceChoice = {},
 ): Promise<Clip> => {
   if (!text.trim()) throw new HttpError(400, "This scene has no narration text to speak.");
   const env = loadEnv(ROOT);
@@ -106,6 +110,14 @@ export const generateVoice = (
         throw providerError(error);
       });
       return finishClip({ projectId, sceneId, raw, text, source: "eleven", language, words });
+    }
+    if (provider === "omnivoice") {
+      const voice = omnivoiceVoice || env.OMNIVOICE_VOICE || DEFAULT_OMNIVOICE_VOICE;
+      const raw = join(dir, "voice.wav");
+      await omnivoice({ baseUrl: env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL, voice, language })(text, raw).catch((error: unknown) => {
+        throw providerError(error);
+      });
+      return finishClip({ projectId, sceneId, raw, text, source: "omnivoice", language, words: null });
     }
     const profileId = voiceboxProfile || (language === "id" ? env.VOICEBOX_PROFILE_ID : env.VOICEBOX_PROFILE_EN) || env.VOICEBOX_PROFILE;
     if (!profileId) throw new HttpError(400, "Pick a Voicebox voice profile, or set VOICEBOX_PROFILE in .env.local.");

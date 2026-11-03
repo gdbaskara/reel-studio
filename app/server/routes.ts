@@ -1,20 +1,24 @@
 import { existsSync } from "node:fs";
 import express, { Router, type Request } from "express";
 import { z } from "zod";
-import { CreateRequestSchema, GENERATORS, UpdateRequestSchema, VOICEBOX_PROFILE, type Clip, type Project } from "../shared/project";
+import { CreateRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, VOICEBOX_PROFILE, type Clip, type Project } from "../shared/project";
 import { sceneIdsOf } from "../shared/toReel";
 import { loadEnv } from "../../scripts/env.mjs";
-import { listVoiceboxProfiles, voiceboxRunning } from "../../scripts/providers.mjs";
+import { listOmnivoiceVoices, listVoiceboxProfiles, omnivoiceRunning, voiceboxRunning } from "../../scripts/providers.mjs";
 import { retimeWords } from "./captions/timeWords";
 import { whisperSetup } from "./captions/whisper";
 import { manualPlan, planWithAi } from "./planner";
 import { isRendering, startRender, videoPath } from "./render";
 import { withProjectLock } from "./lock";
 import { getProject, listProjects, newProjectId, saveProject, writeRender } from "./store";
-import { DEFAULT_VOICEBOX_URL, generateVoice, importUpload, pruneAudio, releasePending } from "./voice";
+import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, generateVoice, importUpload, pruneAudio, releasePending } from "./voice";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
 
-const ProviderSchema = z.object({ provider: z.enum(GENERATORS), voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional() });
+const ProviderSchema = z.object({
+  provider: z.enum(GENERATORS),
+  voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional(),
+  omnivoiceVoice: z.string().regex(OMNIVOICE_VOICE).optional(),
+});
 const AUDIO_FILE = /^(title|step-[1-9]|outro)-\d+\.wav$/;
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
@@ -59,10 +63,15 @@ export const apiRouter = (): Router => {
   api.get("/status", async (_req, res) => {
     const env = loadEnv(ROOT);
     const whisper = whisperSetup();
+    const [voicebox, omnivoice] = await Promise.all([
+      voiceboxRunning(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL),
+      omnivoiceRunning(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL),
+    ]);
     res.json({
       planner: env.ANTHROPIC_API_KEY ? "anthropic-api" : "claude-cli",
       elevenlabs: Boolean(env.ELEVENLABS_API_KEY),
-      voicebox: await voiceboxRunning(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL),
+      voicebox,
+      omnivoice,
       whisper: Boolean(whisper.bin && whisper.model),
     });
   });
@@ -71,6 +80,15 @@ export const apiRouter = (): Router => {
     const env = loadEnv(ROOT);
     try {
       res.json(await listVoiceboxProfiles(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL));
+    } catch (error) {
+      throw new HttpError(503, error instanceof Error ? error.message : String(error));
+    }
+  });
+
+  api.get("/omnivoice/voices", async (_req, res) => {
+    const env = loadEnv(ROOT);
+    try {
+      res.json(await listOmnivoiceVoices(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL));
     } catch (error) {
       throw new HttpError(503, error instanceof Error ? error.message : String(error));
     }
@@ -132,11 +150,14 @@ export const apiRouter = (): Router => {
 
   api.post("/projects/:id/scenes/:sceneId/voice", async (req, res) => {
     const { id, sceneId } = params(req);
-    const { provider, voiceboxProfile } = parse(ProviderSchema, req.body);
+    const { provider, voiceboxProfile, omnivoiceVoice } = parse(ProviderSchema, req.body);
     const project = await getProject(id);
     const text = project.plan.narration[sceneId] ?? "";
-    const profile = voiceboxProfile ?? project.options.voiceboxProfile;
-    res.json(await attachClip(id, sceneId, await generateVoice(id, sceneId, text, provider, project.options.language, profile)));
+    const choice = {
+      voiceboxProfile: voiceboxProfile ?? project.options.voiceboxProfile,
+      omnivoiceVoice: omnivoiceVoice ?? project.options.omnivoiceVoice,
+    };
+    res.json(await attachClip(id, sceneId, await generateVoice(id, sceneId, text, provider, project.options.language, choice)));
   });
 
   api.put(

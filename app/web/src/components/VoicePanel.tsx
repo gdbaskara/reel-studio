@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import type { Clip, Generator, Project } from "../../../shared/project";
-import type { Status, VoiceboxProfile } from "../api";
-import { ProfilePicker } from "./ProfilePicker";
+import type { OmnivoiceVoice, Status, VoiceChoice, VoiceboxProfile } from "../api";
+import { OMNIVOICE_PICKER, VOICEBOX_PICKER, omnivoiceOptions, voiceboxOptions } from "../voices";
+import { VoicePicker } from "./VoicePicker";
 import { voiceStatus } from "./SceneList";
 
 type Props = {
@@ -9,8 +10,9 @@ type Props = {
   readonly sceneId: string;
   readonly status: Status | null;
   readonly profiles: readonly VoiceboxProfile[];
+  readonly omnivoiceVoices: readonly OmnivoiceVoice[];
   readonly busy: boolean;
-  readonly onGenerate: (provider: Generator, voiceboxProfile?: string) => void;
+  readonly onGenerate: (provider: Generator, choice?: VoiceChoice) => void;
   readonly onUpload: (file: File) => void;
   readonly onRemove: () => void;
 };
@@ -22,13 +24,15 @@ const timingNote = (clip: Clip, whisper: boolean): string => {
   return "";
 };
 
-export const VoicePanel = ({ project, sceneId, status: services, profiles, busy, onGenerate, onUpload, onRemove }: Props) => {
+export const VoicePanel = ({ project, sceneId, status: services, profiles, omnivoiceVoices, busy, onGenerate, onUpload, onRemove }: Props) => {
   const input = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState(project.options.voiceboxProfile);
+  const [omniVoice, setOmniVoice] = useState(project.options.omnivoiceVoice);
   const clip = project.voice[sceneId];
   const status = voiceStatus(project, sceneId);
   const elevenlabs = Boolean(services?.elevenlabs);
   const voicebox = Boolean(services?.voicebox);
+  const omnivoice = Boolean(services?.omnivoice);
   const note = clip ? timingNote(clip, Boolean(services?.whisper)) : "";
   const hasText = Boolean(project.plan.narration[sceneId]?.trim());
 
@@ -56,9 +60,16 @@ export const VoicePanel = ({ project, sceneId, status: services, profiles, busy,
         <button
           disabled={busy || !hasText || !voicebox}
           title={voicebox ? (project.options.language === "id" ? "Indonesian uses Voicebox's Malay voice" : "") : "Open Voicebox and turn on Keep server running"}
-          onClick={() => onGenerate("voicebox", profile)}
+          onClick={() => onGenerate("voicebox", { voiceboxProfile: profile })}
         >
           Generate (Voicebox)
+        </button>
+        <button
+          disabled={busy || !hasText || !omnivoice}
+          title={omnivoice ? "Local, native Indonesian. Non-commercial license" : "Start it with: npm run omnivoice"}
+          onClick={() => onGenerate("omnivoice", { omnivoiceVoice: omniVoice })}
+        >
+          Generate (OmniVoice)
         </button>
         <button disabled={busy} onClick={() => input.current?.click()}>
           Upload recording
@@ -69,7 +80,10 @@ export const VoicePanel = ({ project, sceneId, status: services, profiles, busy,
           </button>
         ) : null}
       </div>
-      {voicebox && profiles.length ? <ProfilePicker profiles={profiles} value={profile} onChange={setProfile} /> : null}
+      {voicebox && profiles.length ? <VoicePicker {...VOICEBOX_PICKER} voices={voiceboxOptions(profiles)} value={profile} onChange={setProfile} /> : null}
+      {omnivoice && omnivoiceVoices.length ? (
+        <VoicePicker {...OMNIVOICE_PICKER} voices={omnivoiceOptions(omnivoiceVoices)} value={omniVoice} onChange={setOmniVoice} />
+      ) : null}
       <input
         ref={input}
         type="file"

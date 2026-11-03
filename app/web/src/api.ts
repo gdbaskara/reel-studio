@@ -5,9 +5,12 @@ export type Status = {
   readonly planner: "anthropic-api" | "claude-cli";
   readonly elevenlabs: boolean;
   readonly voicebox: boolean;
+  readonly omnivoice: boolean;
   readonly whisper: boolean;
 };
 export type VoiceboxProfile = { readonly id: string; readonly name: string; readonly language: string };
+export type OmnivoiceVoice = { readonly id: string; readonly name: string; readonly builtin: boolean };
+export type VoiceChoice = { readonly voiceboxProfile?: string; readonly omnivoiceVoice?: string };
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const res = await fetch(`/api${path}`, init);
@@ -29,8 +32,9 @@ export const api = {
   create: (body: CreateRequest) => request<Project>("/projects", json("POST", body)),
   update: (id: string, body: UpdateRequest) => request<Project>(`/projects/${id}`, json("PUT", body)),
   voiceboxProfiles: () => request<VoiceboxProfile[]>("/voicebox/profiles"),
-  generateVoice: (id: string, sceneId: string, provider: Generator, voiceboxProfile?: string) =>
-    request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, json("POST", { provider, voiceboxProfile })),
+  omnivoiceVoices: () => request<OmnivoiceVoice[]>("/omnivoice/voices"),
+  generateVoice: (id: string, sceneId: string, provider: Generator, choice: VoiceChoice = {}) =>
+    request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, json("POST", { provider, ...choice })),
   uploadVoice: (id: string, sceneId: string, file: File) =>
     request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, {
       method: "PUT",

@@ -14,11 +14,12 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
   steps; autosave.
 - **Live preview** - play a single scene or the full reel in the browser
   (`@remotion/player`).
-- **Mixed voiceover** - per scene, generate with ElevenLabs or
-  [Voicebox](https://github.com/jamiepine/voicebox) (local, open-source voice cloning),
-  or upload your own audio (mp3/wav/m4a, up to 90 s).
+- **Mixed voiceover** - per scene, generate with ElevenLabs,
+  [Voicebox](https://github.com/jamiepine/voicebox) (local, open-source voice cloning) or
+  [OmniVoice](https://github.com/k2-fsa/OmniVoice) (local, native Indonesian, every scene
+  cloned from one reference voice), or upload your own audio (mp3/wav/m4a, up to 90 s).
 - **Captions** - TikTok-style word highlight. ElevenLabs clips use its own alignment;
-  Voicebox and uploaded clips are timed with a local Whisper (whisper.cpp) and aligned
+  Voicebox, OmniVoice and uploaded clips are timed with a local Whisper (whisper.cpp) and aligned
   to the narration script, so captions keep your spelling but follow the real audio.
   Without Whisper, timings are estimated from word length.
 - **Render** - one click to MP4 with progress, then download.
@@ -31,6 +32,8 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
 - Optional: an ElevenLabs API key
 - Optional: [Voicebox](https://github.com/jamiepine/voicebox) running locally with
   "Keep server running" on, and at least one voice profile
+- Optional: OmniVoice (Python 3, Apple Silicon or CPU): `npm run setup:omnivoice` once, then
+  `npm run omnivoice` (serves on `127.0.0.1:17600`). Non-commercial use only, see below.
 - Optional: whisper.cpp for caption timing (`npm run setup:whisper`)
 - Optional: an Anthropic API key or the `claude` CLI for AI planning
 
@@ -48,8 +51,10 @@ npm run app                  # http://localhost:4310
 | --- | --- |
 | `npm run app` | Start Reel Studio (Express API + Vite UI on one port) |
 | `npm run setup:whisper` | Install whisper.cpp and download the caption timing model |
+| `npm run setup:omnivoice` | Create the OmniVoice Python environment and download its model |
+| `npm run omnivoice` | Start the local OmniVoice TTS server (`127.0.0.1:17600`) |
 | `npm run studio` | Open Remotion Studio for the demo compositions |
-| `npm run voice:atlas` | Generate voiceover for the demo reel (`--provider=eleven\|voicebox`) |
+| `npm run voice:atlas` | Generate voiceover for the demo reel (`--provider=eleven\|voicebox\|omnivoice`) |
 | `npm run render:atlas` | Render the demo reel to `out/atlas.mp4` |
 | `npm test` | Run unit tests (vitest) |
 | `npm run typecheck` | Type-check the whole project |
@@ -76,10 +81,16 @@ Projects are stored as JSON plus audio under `projects/` (gitignored).
 | --- | --- | --- | --- |
 | ElevenLabs | yes | yes | exact (provider alignment) |
 | Voicebox | Qwen3-TTS | Chatterbox, Malay (`ms`) voice | Whisper |
+| OmniVoice | yes | yes (native) | Whisper |
 | Upload | yes | yes | Whisper |
 
 Voicebox has no Indonesian voice, so Indonesian narration is sent as Malay, the closest
 supported language. Listen before publishing.
+
+OmniVoice speaks Indonesian natively. Built-in voices `wanita` and `pria` are created on
+first use; add your own as `~/.cache/reel-studio/omnivoice-voices/<id>.wav` plus `<id>.txt`
+(exact transcript). **License:** OmniVoice code is Apache-2.0, but its pretrained weights
+are CC-BY-NC, so OmniVoice voiceovers are for non-commercial use only.
 
 ## Security notes
 
