@@ -8,7 +8,7 @@ type Props = {
   readonly onAddStep: () => void;
 };
 
-const SOURCE_LABEL = { eleven: "ElevenLabs", mac: "Mac voice", upload: "Uploaded" } as const;
+const SOURCE_LABEL = { eleven: "ElevenLabs", voicebox: "Voicebox", upload: "Uploaded", mac: "Mac voice (old)" } as const;
 
 export const voiceStatus = (project: Project, sceneId: string) => {
   const clip = project.voice[sceneId];

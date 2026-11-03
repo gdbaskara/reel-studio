@@ -2,10 +2,14 @@ import { z } from "zod";
 
 export const DRAWINGS = ["arrow", "circle", "zigzag", "check", "star"] as const;
 export const PALETTE_NAMES = ["warm", "green", "blue"] as const;
-export const VOICE_SOURCES = ["eleven", "mac", "upload"] as const;
+// "mac" is kept only so projects made with the old macOS voice still open.
+export const VOICE_SOURCES = ["eleven", "voicebox", "upload", "mac"] as const;
+export const GENERATORS = ["eleven", "voicebox"] as const;
+export const CAPTION_TIMINGS = ["provider", "whisper", "estimate"] as const;
 
 export const SCENE_ID = /^(title|step-[1-9]|outro)$/;
 export const PROJECT_ID = /^[a-z0-9-]{6,40}$/;
+export const VOICEBOX_PROFILE = /^[A-Za-z0-9_-]{1,100}$/;
 
 const text = (max: number) => z.string().trim().max(max);
 
@@ -14,10 +18,12 @@ export const CreateOptionsSchema = z.object({
   language: z.enum(["id", "en"]),
   stepCount: z.number().int().min(2).max(7),
   planMode: z.enum(["ai", "manual"]),
-  // "eleven" | "mac": generate every scene's voice right after planning.
+  // "eleven" | "voicebox": generate every scene's voice right after planning.
   // "upload": leave voices empty so you can upload your own recordings.
   // "mixed": leave voices empty and choose generate or upload per scene.
-  voiceMode: z.enum(["eleven", "mac", "upload", "mixed"]),
+  // Older projects saved "mac"; they now use Voicebox.
+  voiceMode: z.preprocess((v) => (v === "mac" ? "voicebox" : v), z.enum(["eleven", "voicebox", "upload", "mixed"])),
+  voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional(),
   captions: z.boolean(),
   palette: z.enum(PALETTE_NAMES),
 });
@@ -41,12 +47,18 @@ export const PlanSchema = z.object({
   narration: z.record(z.string().regex(SCENE_ID), text(600)),
 });
 
+const WordSchema = z.object({ text: z.string(), start: z.number(), end: z.number() });
+
 export const ClipSchema = z.object({
   duration: z.number().positive(),
   text: z.string(),
-  words: z.array(z.object({ text: z.string(), start: z.number(), end: z.number() })),
+  words: z.array(WordSchema),
   src: z.string(),
   source: z.enum(VOICE_SOURCES),
+  // How the caption timings were made; older clips have none.
+  timing: z.enum(CAPTION_TIMINGS).optional(),
+  // Words Whisper heard in the audio, kept so narration edits can be re-aligned without re-running it.
+  heard: z.array(WordSchema).optional(),
 });
 
 export const RenderStateSchema = z.object({
@@ -84,3 +96,4 @@ export type Clip = z.infer<typeof ClipSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type UpdateRequest = z.infer<typeof UpdateRequestSchema>;
 export type VoiceSource = (typeof VOICE_SOURCES)[number];
+export type Generator = (typeof GENERATORS)[number];

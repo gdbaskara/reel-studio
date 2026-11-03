@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Plan, Project } from "../../shared/project";
+import type { Generator, Plan, Project } from "../../shared/project";
 import { addStep, draftOf, rebaseOrigin, removeStep, sceneMapOf, type Draft } from "../../shared/editPlan";
 import { api } from "./api";
 
@@ -120,8 +120,8 @@ export const useProjectEditor = (projectId: string) => {
     setLook: setLookValue,
     addStep: () => draft && project && change(addStep(draft, project.options.language)),
     removeStep: (index: number) => draft && change(removeStep(draft, index)),
-    generateVoice: (sceneId: string, provider: "eleven" | "mac") =>
-      run(`voice:${sceneId}`, () => api.generateVoice(projectId, sceneId, provider)),
+    generateVoice: (sceneId: string, provider: Generator, voiceboxProfile?: string) =>
+      run(`voice:${sceneId}`, () => api.generateVoice(projectId, sceneId, provider, voiceboxProfile)),
     uploadVoice: (sceneId: string, file: File) => run(`voice:${sceneId}`, () => api.uploadVoice(projectId, sceneId, file)),
     removeVoice: (sceneId: string) => run(`voice:${sceneId}`, () => api.removeVoice(projectId, sceneId)),
     render: () => run("render", () => api.render(projectId)),

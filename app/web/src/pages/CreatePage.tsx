@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import type { CreateOptions } from "../../../shared/project";
 import { sceneIdsOf } from "../../../shared/toReel";
 import { PALETTES } from "../../../../src/palettes";
-import { api, type ProjectSummary, type Status } from "../api";
+import { api, type ProjectSummary } from "../api";
 import { navigate } from "../App";
 import { Choice } from "../components/Choice";
+import { ProfilePicker } from "../components/ProfilePicker";
+import { useServices } from "../useServices";
 
 const DEFAULTS: CreateOptions = {
   language: "id",
@@ -18,19 +20,21 @@ const DEFAULTS: CreateOptions = {
 export const CreatePage = () => {
   const [prompt, setPrompt] = useState("");
   const [options, setOptions] = useState<CreateOptions>(DEFAULTS);
-  const [status, setStatus] = useState<Status | null>(null);
+  const { status, profiles } = useServices();
   const [projects, setProjects] = useState<readonly ProjectSummary[]>([]);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.status().then(setStatus).catch(() => setStatus(null));
     api.list().then(setProjects).catch(() => setProjects([]));
   }, []);
 
   useEffect(() => {
-    if (status && !status.elevenlabs && options.voiceMode === "eleven") setOptions((o) => ({ ...o, voiceMode: "mac" }));
+    if (status && !status.elevenlabs && options.voiceMode === "eleven") {
+      setOptions((o) => ({ ...o, voiceMode: status.voicebox ? "voicebox" : "mixed" }));
+    }
   }, [status, options.voiceMode]);
+
 
   const set = <K extends keyof CreateOptions>(key: K, value: CreateOptions[K]) => setOptions((o) => ({ ...o, [key]: value }));
 
@@ -39,7 +43,7 @@ export const CreatePage = () => {
     try {
       setProgress(options.planMode === "ai" ? "Writing the plan with AI... (up to a minute)" : "Setting up your scenes...");
       const project = await api.create({ prompt, options });
-      if (options.voiceMode === "eleven" || options.voiceMode === "mac") {
+      if (options.voiceMode === "eleven" || options.voiceMode === "voicebox") {
         const ids = sceneIdsOf(project.plan);
         for (const [i, sceneId] of ids.entries()) {
           setProgress(`Generating voice ${i + 1} of ${ids.length}...`);
@@ -90,11 +94,28 @@ export const CreatePage = () => {
           onChange={(v) => set("voiceMode", v)}
           options={[
             { value: "eleven", title: "Generate: ElevenLabs", detail: status?.elevenlabs ? "Natural voice, exact caption timing" : "Add ELEVENLABS_API_KEY to enable", disabled: !status?.elevenlabs },
-            { value: "mac", title: "Generate: Mac voice", detail: "Free and offline" },
+            {
+              value: "voicebox",
+              title: "Generate: Voicebox",
+              detail: status?.voicebox ? "Local and free. Indonesian uses its Malay voice" : "Open Voicebox to enable",
+              disabled: !status?.voicebox,
+            },
             { value: "upload", title: "Upload my recordings", detail: "One audio file per scene" },
             { value: "mixed", title: "Decide per scene", detail: "Mix generated and uploaded" },
           ]}
         />
+
+        {options.voiceMode === "voicebox" || (options.voiceMode === "mixed" && profiles.length) ? (
+          profiles.length ? (
+            <ProfilePicker profiles={profiles} value={options.voiceboxProfile} onChange={(id) => set("voiceboxProfile", id)} />
+          ) : (
+            <p className="hint warn">No Voicebox voice profiles found. Create one in Voicebox, or set VOICEBOX_PROFILE.</p>
+          )
+        ) : null}
+
+        {!status?.whisper ? (
+          <p className="hint">Tip: install whisper.cpp (npm run setup:whisper) so captions follow the real audio for uploads and Voicebox.</p>
+        ) : null}
 
         <div className="row">
           <Choice

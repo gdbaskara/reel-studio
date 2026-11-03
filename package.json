@@ -8,6 +8,7 @@
     "render:hooks": "remotion render src/index.ts Hooks out/hooks.mp4",
     "render:atlas": "remotion render src/index.ts Atlas out/atlas.mp4",
     "app": "tsx app/server/main.ts",
+    "setup:whisper": "bash scripts/setup-whisper.sh",
     "test": "vitest run",
     "typecheck": "tsc -p ."
   },
@@ -26,6 +27,7 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.1.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

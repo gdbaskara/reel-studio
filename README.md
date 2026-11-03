@@ -14,19 +14,25 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
   steps; autosave.
 - **Live preview** - play a single scene or the full reel in the browser
   (`@remotion/player`).
-- **Mixed voiceover** - per scene, generate with ElevenLabs or macOS `say`, or upload
-  your own audio (mp3/wav/m4a, up to 90 s).
-- **Captions** - TikTok-style word highlight, timed from ElevenLabs alignment
-  (estimated for uploaded audio).
+- **Mixed voiceover** - per scene, generate with ElevenLabs or
+  [Voicebox](https://github.com/jamiepine/voicebox) (local, open-source voice cloning),
+  or upload your own audio (mp3/wav/m4a, up to 90 s).
+- **Captions** - TikTok-style word highlight. ElevenLabs clips use its own alignment;
+  Voicebox and uploaded clips are timed with a local Whisper (whisper.cpp) and aligned
+  to the narration script, so captions keep your spelling but follow the real audio.
+  Without Whisper, timings are estimated from word length.
 - **Render** - one click to MP4 with progress, then download.
 
 ## Requirements
 
 - Node.js 22+
 - ffmpeg (`brew install ffmpeg`)
-- macOS for the `say` voice and `afinfo` duration lookup
-- Optional: an ElevenLabs API key, and either an Anthropic API key or the `claude` CLI
-  for AI planning
+- macOS (uses `afinfo` for audio durations)
+- Optional: an ElevenLabs API key
+- Optional: [Voicebox](https://github.com/jamiepine/voicebox) running locally with
+  "Keep server running" on, and at least one voice profile
+- Optional: whisper.cpp for caption timing (`npm run setup:whisper`)
+- Optional: an Anthropic API key or the `claude` CLI for AI planning
 
 ## Getting started
 
@@ -41,8 +47,9 @@ npm run app                  # http://localhost:4310
 | Command | What it does |
 | --- | --- |
 | `npm run app` | Start Reel Studio (Express API + Vite UI on one port) |
+| `npm run setup:whisper` | Install whisper.cpp and download the caption timing model |
 | `npm run studio` | Open Remotion Studio for the demo compositions |
-| `npm run voice:atlas` | Generate voiceover for the demo reel (`--provider=eleven\|mac`) |
+| `npm run voice:atlas` | Generate voiceover for the demo reel (`--provider=eleven\|voicebox`) |
 | `npm run render:atlas` | Render the demo reel to `out/atlas.mp4` |
 | `npm test` | Run unit tests (vitest) |
 | `npm run typecheck` | Type-check the whole project |
@@ -63,6 +70,17 @@ tests/      vitest unit tests
 
 Projects are stored as JSON plus audio under `projects/` (gitignored).
 
+## Voice providers and languages
+
+| Provider | English | Indonesian | Caption timing |
+| --- | --- | --- | --- |
+| ElevenLabs | yes | yes | exact (provider alignment) |
+| Voicebox | Qwen3-TTS | Chatterbox, Malay (`ms`) voice | Whisper |
+| Upload | yes | yes | Whisper |
+
+Voicebox has no Indonesian voice, so Indonesian narration is sent as Malay, the closest
+supported language. Listen before publishing.
+
 ## Security notes
 
 - The server binds to `127.0.0.1` and rejects unexpected `Host` headers.
@@ -70,6 +88,5 @@ Projects are stored as JSON plus audio under `projects/` (gitignored).
 
 ## Roadmap
 
-- Replace the macOS voice with [Voicebox](https://github.com/jamiepine/voicebox)
-  (local, open-source voice cloning)
-- Whisper-based word alignment for uploaded and locally generated audio
+- Whisper timing for the demo CLI script (`scripts/voiceover.mjs`)
+- Keep a warm `whisper-server` instead of spawning `whisper-cli` per clip

@@ -1,7 +1,13 @@
-import type { CreateRequest, Project, UpdateRequest } from "../../shared/project";
+import type { CreateRequest, Generator, Project, UpdateRequest } from "../../shared/project";
 
 export type ProjectSummary = Pick<Project, "id" | "name" | "updatedAt">;
-export type Status = { readonly planner: "anthropic-api" | "claude-cli"; readonly elevenlabs: boolean };
+export type Status = {
+  readonly planner: "anthropic-api" | "claude-cli";
+  readonly elevenlabs: boolean;
+  readonly voicebox: boolean;
+  readonly whisper: boolean;
+};
+export type VoiceboxProfile = { readonly id: string; readonly name: string; readonly language: string };
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const res = await fetch(`/api${path}`, init);
@@ -22,8 +28,9 @@ export const api = {
   get: (id: string) => request<Project>(`/projects/${id}`),
   create: (body: CreateRequest) => request<Project>("/projects", json("POST", body)),
   update: (id: string, body: UpdateRequest) => request<Project>(`/projects/${id}`, json("PUT", body)),
-  generateVoice: (id: string, sceneId: string, provider: "eleven" | "mac") =>
-    request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, json("POST", { provider })),
+  voiceboxProfiles: () => request<VoiceboxProfile[]>("/voicebox/profiles"),
+  generateVoice: (id: string, sceneId: string, provider: Generator, voiceboxProfile?: string) =>
+    request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, json("POST", { provider, voiceboxProfile })),
   uploadVoice: (id: string, sceneId: string, file: File) =>
     request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, {
       method: "PUT",

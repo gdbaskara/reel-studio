@@ -1,18 +1,20 @@
 import { existsSync } from "node:fs";
 import express, { Router, type Request } from "express";
 import { z } from "zod";
-import { CreateRequestSchema, UpdateRequestSchema, type Clip, type Project } from "../shared/project";
+import { CreateRequestSchema, GENERATORS, UpdateRequestSchema, VOICEBOX_PROFILE, type Clip, type Project } from "../shared/project";
 import { sceneIdsOf } from "../shared/toReel";
 import { loadEnv } from "../../scripts/env.mjs";
-import { estimateWords } from "../../scripts/providers.mjs";
+import { listVoiceboxProfiles, voiceboxRunning } from "../../scripts/providers.mjs";
+import { retimeWords } from "./captions/timeWords";
+import { whisperSetup } from "./captions/whisper";
 import { manualPlan, planWithAi } from "./planner";
 import { isRendering, startRender, videoPath } from "./render";
 import { withProjectLock } from "./lock";
 import { getProject, listProjects, newProjectId, saveProject, writeRender } from "./store";
-import { generateVoice, importUpload, pruneAudio, releasePending } from "./voice";
+import { DEFAULT_VOICEBOX_URL, generateVoice, importUpload, pruneAudio, releasePending } from "./voice";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
 
-const ProviderSchema = z.object({ provider: z.enum(["eleven", "mac"]) });
+const ProviderSchema = z.object({ provider: z.enum(GENERATORS), voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional() });
 const AUDIO_FILE = /^(title|step-[1-9]|outro)-\d+\.wav$/;
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
@@ -54,9 +56,24 @@ export const apiRouter = (): Router => {
   const api = Router();
   api.use(express.json({ limit: "200kb" }));
 
-  api.get("/status", (_req, res) => {
+  api.get("/status", async (_req, res) => {
     const env = loadEnv(ROOT);
-    res.json({ planner: env.ANTHROPIC_API_KEY ? "anthropic-api" : "claude-cli", elevenlabs: Boolean(env.ELEVENLABS_API_KEY) });
+    const whisper = whisperSetup();
+    res.json({
+      planner: env.ANTHROPIC_API_KEY ? "anthropic-api" : "claude-cli",
+      elevenlabs: Boolean(env.ELEVENLABS_API_KEY),
+      voicebox: await voiceboxRunning(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL),
+      whisper: Boolean(whisper.bin && whisper.model),
+    });
+  });
+
+  api.get("/voicebox/profiles", async (_req, res) => {
+    const env = loadEnv(ROOT);
+    try {
+      res.json(await listVoiceboxProfiles(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL));
+    } catch (error) {
+      throw new HttpError(503, error instanceof Error ? error.message : String(error));
+    }
   });
 
   api.get("/projects", async (_req, res) => {
@@ -96,9 +113,9 @@ export const apiRouter = (): Router => {
         const from = sceneMap ? sceneMap[newId] : newId;
         const clip = from ? project.voice[from] : undefined;
         if (!clip) return [];
-        // Uploaded recordings have estimated captions, so they follow edits to the narration text.
+        // Uploaded recordings follow edits to their transcript; captions are re-aligned to what Whisper heard.
         const text = plan.narration[newId] ?? "";
-        const refreshed = clip.source === "upload" && clip.text !== text ? { ...clip, text, words: estimateWords(text, clip.duration) } : clip;
+        const refreshed = clip.source === "upload" && clip.text !== text ? { ...clip, text, ...retimeWords(clip, text, project.options.language) } : clip;
         return [[newId, refreshed]];
       }),
     );
@@ -115,10 +132,11 @@ export const apiRouter = (): Router => {
 
   api.post("/projects/:id/scenes/:sceneId/voice", async (req, res) => {
     const { id, sceneId } = params(req);
-    const { provider } = parse(ProviderSchema, req.body);
+    const { provider, voiceboxProfile } = parse(ProviderSchema, req.body);
     const project = await getProject(id);
     const text = project.plan.narration[sceneId] ?? "";
-    res.json(await attachClip(id, sceneId, await generateVoice(id, sceneId, text, provider, project.options.language)));
+    const profile = voiceboxProfile ?? project.options.voiceboxProfile;
+    res.json(await attachClip(id, sceneId, await generateVoice(id, sceneId, text, provider, project.options.language, profile)));
   });
 
   api.put(
@@ -128,7 +146,7 @@ export const apiRouter = (): Router => {
       const { id, sceneId } = params(req);
       const project = await getProject(id);
       const text = project.plan.narration[sceneId] ?? "";
-      res.json(await attachClip(id, sceneId, await importUpload(id, sceneId, req.body as Buffer, text)));
+      res.json(await attachClip(id, sceneId, await importUpload(id, sceneId, req.body as Buffer, text, project.options.language)));
     },
   );
 

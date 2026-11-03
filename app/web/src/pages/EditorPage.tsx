@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { sceneIdsOf } from "../../../shared/toReel";
 import { PALETTES } from "../../../../src/palettes";
-import { api, type Status } from "../api";
 import { navigate } from "../App";
 import { useProjectEditor } from "../useProjectEditor";
+import { useServices } from "../useServices";
 import { SceneList } from "../components/SceneList";
 import { ScenePreview } from "../components/ScenePreview";
 import { SceneInspector } from "../components/SceneInspector";
@@ -14,11 +14,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const editor = useProjectEditor(projectId);
   const [selected, setSelected] = useState(0);
   const [mode, setMode] = useState<"scene" | "full">("scene");
-  const [status, setStatus] = useState<Status | null>(null);
-
-  useEffect(() => {
-    api.status().then(setStatus).catch(() => setStatus(null));
-  }, []);
+  const { status, profiles } = useServices();
 
   const { project, preview, look } = editor;
   if (!project || !preview || !look) {
@@ -93,9 +89,10 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           <VoicePanel
             project={preview}
             sceneId={sceneId}
-            elevenlabs={Boolean(status?.elevenlabs)}
+            status={status}
+            profiles={profiles}
             busy={editor.busy === `voice:${sceneId}`}
-            onGenerate={(provider) => editor.generateVoice(sceneId, provider)}
+            onGenerate={(provider, profile) => editor.generateVoice(sceneId, provider, profile)}
             onUpload={(file) => editor.uploadVoice(sceneId, file)}
             onRemove={() => editor.removeVoice(sceneId)}
           />

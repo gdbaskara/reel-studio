@@ -1,21 +1,35 @@
-import { useRef } from "react";
-import type { Project } from "../../../shared/project";
+import { useRef, useState } from "react";
+import type { Clip, Generator, Project } from "../../../shared/project";
+import type { Status, VoiceboxProfile } from "../api";
+import { ProfilePicker } from "./ProfilePicker";
 import { voiceStatus } from "./SceneList";
 
 type Props = {
   readonly project: Project;
   readonly sceneId: string;
-  readonly elevenlabs: boolean;
+  readonly status: Status | null;
+  readonly profiles: readonly VoiceboxProfile[];
   readonly busy: boolean;
-  readonly onGenerate: (provider: "eleven" | "mac") => void;
+  readonly onGenerate: (provider: Generator, voiceboxProfile?: string) => void;
   readonly onUpload: (file: File) => void;
   readonly onRemove: () => void;
 };
 
-export const VoicePanel = ({ project, sceneId, elevenlabs, busy, onGenerate, onUpload, onRemove }: Props) => {
+const timingNote = (clip: Clip, whisper: boolean): string => {
+  if (clip.timing === "provider") return "Captions timed by ElevenLabs";
+  if (clip.timing === "whisper") return "Captions timed by Whisper";
+  if (clip.timing === "estimate") return whisper ? "Captions estimated (the audio did not match the narration text)" : "Captions estimated - install whisper.cpp for exact timing";
+  return "";
+};
+
+export const VoicePanel = ({ project, sceneId, status: services, profiles, busy, onGenerate, onUpload, onRemove }: Props) => {
   const input = useRef<HTMLInputElement>(null);
+  const [profile, setProfile] = useState(project.options.voiceboxProfile);
   const clip = project.voice[sceneId];
   const status = voiceStatus(project, sceneId);
+  const elevenlabs = Boolean(services?.elevenlabs);
+  const voicebox = Boolean(services?.voicebox);
+  const note = clip ? timingNote(clip, Boolean(services?.whisper)) : "";
   const hasText = Boolean(project.plan.narration[sceneId]?.trim());
 
   return (
@@ -27,7 +41,9 @@ export const VoicePanel = ({ project, sceneId, elevenlabs, busy, onGenerate, onU
       {clip ? (
         <div className="clip">
           <audio controls src={clip.src} preload="metadata" />
-          <small>{clip.duration.toFixed(1)}s{clip.source === "upload" ? " - captions are spread over the clip using the narration text" : ""}</small>
+          <small>
+            {clip.duration.toFixed(1)}s{note ? ` - ${note}` : ""}
+          </small>
         </div>
       ) : (
         <p className="hint">No voice yet. The scene uses its minimum length until you add one.</p>
@@ -37,8 +53,12 @@ export const VoicePanel = ({ project, sceneId, elevenlabs, busy, onGenerate, onU
         <button disabled={busy || !hasText || !elevenlabs} title={elevenlabs ? "" : "Add ELEVENLABS_API_KEY to .env.local"} onClick={() => onGenerate("eleven")}>
           Generate (ElevenLabs)
         </button>
-        <button disabled={busy || !hasText} onClick={() => onGenerate("mac")}>
-          Generate (Mac voice)
+        <button
+          disabled={busy || !hasText || !voicebox}
+          title={voicebox ? (project.options.language === "id" ? "Indonesian uses Voicebox's Malay voice" : "") : "Open Voicebox and turn on Keep server running"}
+          onClick={() => onGenerate("voicebox", profile)}
+        >
+          Generate (Voicebox)
         </button>
         <button disabled={busy} onClick={() => input.current?.click()}>
           Upload recording
@@ -49,6 +69,7 @@ export const VoicePanel = ({ project, sceneId, elevenlabs, busy, onGenerate, onU
           </button>
         ) : null}
       </div>
+      {voicebox && profiles.length ? <ProfilePicker profiles={profiles} value={profile} onChange={setProfile} /> : null}
       <input
         ref={input}
         type="file"

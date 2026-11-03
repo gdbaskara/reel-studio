@@ -1,13 +1,15 @@
 import { mkdtemp, mkdir, readdir, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Clip, CreateOptions } from "../shared/project";
+import type { Clip, CreateOptions, Generator } from "../shared/project";
 import { loadEnv } from "../../scripts/env.mjs";
-import { durationSeconds, elevenLabs, estimateWords, macSay, toWav } from "../../scripts/providers.mjs";
+import { DEFAULT_VOICEBOX_URL, durationSeconds, elevenLabs, toWav, voicebox } from "../../scripts/providers.mjs";
+import { timeWords } from "./captions/timeWords";
 import { HttpError, ROOT, audioDir, audioUrl, checkSceneId } from "./paths";
 
 const MAX_UPLOAD_SECONDS = 90;
-const MAC_VOICES = { id: "Damayanti", en: "Samantha" } as const;
+export { DEFAULT_VOICEBOX_URL };
+type Language = CreateOptions["language"];
 
 // Audio files written but not yet saved into project.json; pruning must leave them alone.
 const pending = new Set<string>();
@@ -22,15 +24,19 @@ const withTemp = async <T>(fn: (dir: string) => Promise<T>): Promise<T> => {
   }
 };
 
+type Take = {
+  readonly projectId: string;
+  readonly sceneId: string;
+  readonly raw: string;
+  readonly text: string;
+  readonly source: Clip["source"];
+  readonly language: Language;
+  // Word timings from the voice provider; null means Whisper (or an estimate) times the captions.
+  readonly words: Clip["words"] | null;
+};
+
 // Each new take gets its own file name, so a clip can move between scenes without renaming.
-const finishClip = async (
-  projectId: string,
-  sceneId: string,
-  raw: string,
-  text: string,
-  source: Clip["source"],
-  words: Clip["words"] | null,
-): Promise<Clip> => {
+const finishClip = async ({ projectId, sceneId, raw, text, source, language, words }: Take): Promise<Clip> => {
   const dir = audioDir(projectId);
   await mkdir(dir, { recursive: true });
   const file = `${checkSceneId(sceneId)}-${Date.now()}.wav`;
@@ -49,15 +55,26 @@ const finishClip = async (
     await unlink(wav);
     throw new HttpError(400, `Keep each scene's audio under ${MAX_UPLOAD_SECONDS}s.`);
   }
-  return { duration, text, words: words ?? (text.trim() ? estimateWords(text, duration) : []), src: audioUrl(projectId, file), source };
+  const src = audioUrl(projectId, file);
+  if (words) return { duration, text, words, src, source, timing: "provider" };
+  try {
+    return { duration, text, src, source, ...(await timeWords(wav, text, duration, language)) };
+  } catch (error) {
+    pending.delete(file);
+    await unlink(wav).catch(() => undefined);
+    throw error;
+  }
 };
+
+const providerError = (error: unknown) => new HttpError(502, error instanceof Error ? error.message : String(error));
 
 export const generateVoice = (
   projectId: string,
   sceneId: string,
   text: string,
-  provider: "eleven" | "mac",
-  language: CreateOptions["language"],
+  provider: Generator,
+  language: Language,
+  voiceboxProfile?: string,
 ): Promise<Clip> => {
   if (!text.trim()) throw new HttpError(400, "This scene has no narration text to speak.");
   const env = loadEnv(ROOT);
@@ -70,22 +87,28 @@ export const generateVoice = (
         modelId: env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
       });
       const raw = join(dir, "voice.mp3");
-      const words = await synth(text, raw);
-      return finishClip(projectId, sceneId, raw, text, "eleven", words);
+      const words = await synth(text, raw).catch((error: unknown) => {
+        throw providerError(error);
+      });
+      return finishClip({ projectId, sceneId, raw, text, source: "eleven", language, words });
     }
-    const raw = join(dir, "voice.aiff");
-    await macSay({ voice: MAC_VOICES[language], rate: env.MAC_RATE || 185 })(text, raw);
-    return finishClip(projectId, sceneId, raw, text, "mac", null);
+    const profileId = voiceboxProfile || (language === "id" ? env.VOICEBOX_PROFILE_ID : env.VOICEBOX_PROFILE_EN) || env.VOICEBOX_PROFILE;
+    if (!profileId) throw new HttpError(400, "Pick a Voicebox voice profile, or set VOICEBOX_PROFILE in .env.local.");
+    const raw = join(dir, "voice.wav");
+    await voicebox({ baseUrl: env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL, profileId, language })(text, raw).catch((error: unknown) => {
+      throw providerError(error);
+    });
+    return finishClip({ projectId, sceneId, raw, text, source: "voicebox", language, words: null });
   });
 };
 
-// Uploaded recordings have no word timings, so captions are spread over the clip by word length.
-export const importUpload = (projectId: string, sceneId: string, body: Buffer, text: string): Promise<Clip> => {
+// Uploaded recordings have no word timings; Whisper times the captions, or they are estimated.
+export const importUpload = (projectId: string, sceneId: string, body: Buffer, text: string, language: Language): Promise<Clip> => {
   if (!body.length) throw new HttpError(400, "The upload was empty.");
   return withTemp(async (dir) => {
     const raw = join(dir, "upload.bin");
     await writeFile(raw, body);
-    return finishClip(projectId, sceneId, raw, text, "upload", null);
+    return finishClip({ projectId, sceneId, raw, text, source: "upload", language, words: null });
   });
 };
 
