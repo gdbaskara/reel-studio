@@ -8,6 +8,7 @@ import { Choice } from "../components/Choice";
 import { VoicePicker } from "../components/VoicePicker";
 import { OMNIVOICE_PICKER, VOICEBOX_PICKER, omnivoiceOptions, voiceboxOptions } from "../voices";
 import { useServices } from "../useServices";
+import { defaultVoiceMode } from "../voiceDefault";
 
 const DEFAULTS: CreateOptions = {
   language: "id",
@@ -25,19 +26,18 @@ export const CreatePage = () => {
   const [projects, setProjects] = useState<readonly ProjectSummary[]>([]);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Until the user picks a voiceover, it follows the language and the running services.
+  const [voiceChosen, setVoiceChosen] = useState(false);
 
   useEffect(() => {
     api.list().then(setProjects).catch(() => setProjects([]));
   }, []);
 
   useEffect(() => {
-    if (status && !status.elevenlabs && options.voiceMode === "eleven") {
-      // Prefer OmniVoice (native Indonesian), then Voicebox, then deciding per scene.
-      const fallback = status.omnivoice ? "omnivoice" : status.voicebox ? "voicebox" : "mixed";
-      setOptions((o) => ({ ...o, voiceMode: fallback }));
-    }
-  }, [status, options.voiceMode]);
-
+    if (!status || voiceChosen) return;
+    const voiceMode = defaultVoiceMode(options.language, status);
+    setOptions((o) => (o.voiceMode === voiceMode ? o : { ...o, voiceMode }));
+  }, [status, options.language, voiceChosen]);
 
   const set = <K extends keyof CreateOptions>(key: K, value: CreateOptions[K]) => setOptions((o) => ({ ...o, [key]: value }));
 
@@ -95,7 +95,10 @@ export const CreatePage = () => {
         <Choice
           label="2. Voiceover"
           value={options.voiceMode}
-          onChange={(v) => set("voiceMode", v)}
+          onChange={(v) => {
+            setVoiceChosen(true);
+            set("voiceMode", v);
+          }}
           options={[
             { value: "eleven", title: "Generate: ElevenLabs", detail: status?.elevenlabs ? "Natural voice, exact caption timing" : "Add ELEVENLABS_API_KEY to enable", disabled: !status?.elevenlabs },
             {
