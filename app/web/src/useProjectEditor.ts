@@ -19,7 +19,7 @@ export const useProjectEditor = (projectId: string) => {
   const version = useRef(0);
   const savedVersion = useRef(0);
   const latest = useRef<{ draft: Draft | null; look: Look | null }>({ draft: null, look: null });
-  const inflight = useRef<Promise<void> | null>(null);
+  const inflight = useRef<Promise<boolean> | null>(null);
   latest.current = { draft, look };
 
   useEffect(() => {
@@ -34,9 +34,10 @@ export const useProjectEditor = (projectId: string) => {
   }, [projectId]);
 
   // Saves run one at a time; each sends the scene mapping for the draft as it was at that moment.
-  const saveOnce = useCallback(async () => {
+  // Resolves false when the save failed, so actions do not run against an outdated plan.
+  const saveOnce = useCallback(async (): Promise<boolean> => {
     const { draft: d, look: l } = latest.current;
-    if (!d || !l || savedVersion.current === version.current) return;
+    if (!d || !l || savedVersion.current === version.current) return true;
     const sending = version.current;
     const sceneMap = sceneMapOf(d);
     setSaving(true);
@@ -45,19 +46,21 @@ export const useProjectEditor = (projectId: string) => {
       savedVersion.current = sending;
       setProject(saved);
       setDraft((current) => (current ? rebaseOrigin(current, sceneMap) : current));
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setSaving(false);
     }
   }, [projectId]);
 
-  const saveNow = useCallback(async () => {
+  const saveNow = useCallback(async (): Promise<boolean> => {
     while (inflight.current) await inflight.current;
     const pendingSave = saveOnce();
     inflight.current = pendingSave;
     try {
-      await pendingSave;
+      return await pendingSave;
     } finally {
       inflight.current = null;
     }
@@ -84,7 +87,8 @@ export const useProjectEditor = (projectId: string) => {
     setError(null);
     setBusy((current) => new Set([...current, label]));
     try {
-      await saveNow();
+      // A failed save keeps its own error on screen; the action would only act on stale text.
+      if (!(await saveNow())) return;
       setProject(await action());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -119,7 +123,7 @@ export const useProjectEditor = (projectId: string) => {
     dismissError: () => setError(null),
     updatePlan,
     setLook: setLookValue,
-    addStep: () => draft && project && change(addStep(draft, project.options.language)),
+    addStep: () => draft && project && change(addStep(draft)),
     removeStep: (index: number) => draft && change(removeStep(draft, index)),
     generateVoice: (sceneId: string, provider: Generator, choice?: VoiceChoice) =>
       run(`voice:${sceneId}`, () => api.generateVoice(projectId, sceneId, provider, choice)),

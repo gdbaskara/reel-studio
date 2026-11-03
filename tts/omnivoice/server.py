@@ -38,8 +38,8 @@ BUILTIN_TEXT = (
     "jadi simak baik-baik sampai selesai ya."
 )
 BUILTINS: dict[str, dict[str, Any]] = {
-    "wanita": {"name": "Wanita (default)", "instruct": "female", "seed": 1234},
-    "pria": {"name": "Pria (default)", "instruct": "male", "seed": 4321},
+    "wanita": {"name": "Wanita", "instruct": "female", "seed": 1234},
+    "pria": {"name": "Pria", "instruct": "male", "seed": 4321},
 }
 
 

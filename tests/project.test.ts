@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ClipSchema, CreateOptionsSchema, CreateRequestSchema, MusicSchema, OMNIVOICE_VOICE, PlanSchema, SCENE_ID, UpdateRequestSchema, musicSettings } from "../app/shared/project";
+import { ClipSchema, CreateOptionsSchema, CreateRequestSchema, GENERATORS, MusicSchema, OMNIVOICE_VOICE, PlanSchema, SCENE_ID, UpdateRequestSchema, musicSettings } from "../app/shared/project";
 import { manualPlan } from "../app/server/planner";
 import { checkProjectId, checkSceneId } from "../app/server/paths";
 
@@ -15,10 +15,8 @@ describe("schemas", () => {
     expect(CreateRequestSchema.safeParse({ prompt: "abc", options: { ...options, voiceMode: "robot" } }).success).toBe(false);
   });
 
-  it("accepts Voicebox with an optional profile and rejects odd profile ids", () => {
-    const voicebox = { ...options, voiceMode: "voicebox", voiceboxProfile: "abc-123" };
-    expect(CreateRequestSchema.safeParse({ prompt: "abc", options: voicebox }).success).toBe(true);
-    expect(CreateRequestSchema.safeParse({ prompt: "abc", options: { ...voicebox, voiceboxProfile: "../x" } }).success).toBe(false);
+  it("no longer offers Voicebox as a generator", () => {
+    expect(GENERATORS).toEqual(["eleven", "omnivoice"]);
   });
 
   it("accepts OmniVoice with an optional voice and rejects odd voice ids", () => {
@@ -32,10 +30,13 @@ describe("schemas", () => {
     expect(ClipSchema.safeParse({ duration: 1, text: "a", words: [], src: "x", source: "omnivoice" }).success).toBe(true);
   });
 
-  it("opens older projects that used the Mac voice", () => {
-    const parsed = CreateOptionsSchema.parse({ ...options, voiceMode: "mac" });
-    expect(parsed.voiceMode).toBe("voicebox");
-    expect(ClipSchema.safeParse({ duration: 1, text: "a", words: [], src: "x", source: "mac" }).success).toBe(true);
+  it("opens older projects that used the removed Mac or Voicebox voices", () => {
+    for (const old of ["mac", "voicebox"]) {
+      const parsed = CreateOptionsSchema.parse({ ...options, voiceMode: old, voiceboxProfile: "abc-123" });
+      expect(parsed.voiceMode).toBe("mixed");
+      expect("voiceboxProfile" in parsed).toBe(false);
+      expect(ClipSchema.safeParse({ duration: 1, text: "a", words: [], src: "x", source: old }).success).toBe(true);
+    }
   });
 
   it("validates background music and its settings", () => {
@@ -72,6 +73,14 @@ describe("manualPlan", () => {
     const plan = manualPlan("Atlas onboarding", options);
     expect(PlanSchema.safeParse(plan).success).toBe(true);
     expect(plan.steps).toHaveLength(3);
-    expect(plan.narration["step-2"]).toBe("Dua.");
+  });
+
+  it("starts every scene blank instead of with placeholder text", () => {
+    const plan = manualPlan("Atlas onboarding", options);
+    expect(plan.title).toEqual({ lead: "", main: "" });
+    expect(plan.outro).toEqual({ main: "", sub: "" });
+    expect(plan.steps.map((s) => [s.title, s.note])).toEqual([["", ""], ["", ""], ["", ""]]);
+    expect(Object.values(plan.narration)).toEqual(["", "", "", "", ""]);
+    expect(plan.name).toBe("Atlas onboarding");
   });
 });

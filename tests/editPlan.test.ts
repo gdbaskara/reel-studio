@@ -35,17 +35,17 @@ describe("removeStep", () => {
 
 describe("addStep", () => {
   it("adds an empty step before the outro with no voice mapping", () => {
-    const next = addStep(draftOf(plan), "id");
+    const next = addStep(draftOf(plan));
     expect(next.plan.steps).toHaveLength(4);
-    expect(next.plan.steps[3].title).toBe("Langkah 4");
+    expect(next.plan.steps[3].title).toBe("");
     expect(next.plan.narration["step-4"]).toBe("");
     expect(sceneMapOf(next)["step-4"]).toBeUndefined();
     expect(sceneMapOf(next).outro).toBe("outro");
   });
 
   it("stops at seven steps", () => {
-    const full = Array.from({ length: 4 }).reduce((d) => addStep(d as ReturnType<typeof draftOf>, "en"), draftOf(plan));
-    expect(addStep(full as ReturnType<typeof draftOf>, "en").plan.steps).toHaveLength(7);
+    const full = Array.from({ length: 4 }).reduce((d) => addStep(d as ReturnType<typeof draftOf>), draftOf(plan));
+    expect(addStep(full as ReturnType<typeof draftOf>).plan.steps).toHaveLength(7);
   });
 });
 
@@ -54,7 +54,7 @@ describe("rebaseOrigin", () => {
     // Saved: step-1 removed, so server step-1 holds what was step-2.
     const sent = { title: "title", "step-1": "step-2", "step-2": "step-3", outro: "outro" };
     // Meanwhile the user added a step; its origin is null, the rest still reference pre-save ids.
-    const during = addStep(removeStep(draftOf(plan), 0), "en");
+    const during = addStep(removeStep(draftOf(plan), 0));
     const rebased = rebaseOrigin(during, sent);
     expect(rebased.origin).toEqual(["title", "step-1", "step-2", null, "outro"]);
     expect(sceneMapOf(rebased)).toEqual({ title: "title", "step-1": "step-1", "step-2": "step-2", outro: "outro" });

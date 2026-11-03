@@ -6,7 +6,7 @@ import { api, type ProjectSummary } from "../api";
 import { navigate } from "../App";
 import { Choice } from "../components/Choice";
 import { VoicePicker } from "../components/VoicePicker";
-import { OMNIVOICE_PICKER, VOICEBOX_PICKER, omnivoiceOptions, voiceboxOptions } from "../voices";
+import { OMNIVOICE_PICKER_LABEL, omnivoiceOptions, pickedVoice } from "../voices";
 import { useServices } from "../useServices";
 import { defaultVoiceMode } from "../voiceDefault";
 
@@ -22,7 +22,7 @@ const DEFAULTS: CreateOptions = {
 export const CreatePage = () => {
   const [prompt, setPrompt] = useState("");
   const [options, setOptions] = useState<CreateOptions>(DEFAULTS);
-  const { status, profiles, omnivoiceVoices } = useServices();
+  const { status, omnivoiceVoices } = useServices();
   const [projects, setProjects] = useState<readonly ProjectSummary[]>([]);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,9 +45,12 @@ export const CreatePage = () => {
     setError(null);
     try {
       setProgress(options.planMode === "ai" ? "Writing the plan with AI... (up to a minute)" : "Setting up your scenes...");
-      const project = await api.create({ prompt, options });
+      // Save the voice the dropdown shows, so generation never falls back to a different one.
+      const omnivoiceVoice = pickedVoice(options.omnivoiceVoice, omnivoiceVoices) ?? options.omnivoiceVoice;
+      const project = await api.create({ prompt, options: { ...options, omnivoiceVoice } });
       const mode = options.voiceMode;
-      if (mode === "eleven" || mode === "voicebox" || mode === "omnivoice") {
+      // A manual plan starts with empty narration, so there is nothing to speak yet.
+      if (options.planMode === "ai" && (mode === "eleven" || mode === "omnivoice")) {
         const ids = sceneIdsOf(project.plan);
         for (const [i, sceneId] of ids.entries()) {
           setProgress(`Generating voice ${i + 1} of ${ids.length}...`);
@@ -102,12 +105,6 @@ export const CreatePage = () => {
           options={[
             { value: "eleven", title: "Generate: ElevenLabs", detail: status?.elevenlabs ? "Natural voice, exact caption timing" : "Add ELEVENLABS_API_KEY to enable", disabled: !status?.elevenlabs },
             {
-              value: "voicebox",
-              title: "Generate: Voicebox",
-              detail: status?.voicebox ? "Local and free. Indonesian uses its Malay voice" : "Open Voicebox to enable",
-              disabled: !status?.voicebox,
-            },
-            {
               value: "omnivoice",
               title: "Generate: OmniVoice",
               detail: status?.omnivoice ? "Local, native Indonesian. Non-commercial license" : "Run npm run omnivoice to enable",
@@ -118,24 +115,21 @@ export const CreatePage = () => {
           ]}
         />
 
-        {options.voiceMode === "voicebox" || (options.voiceMode === "mixed" && profiles.length) ? (
-          profiles.length ? (
-            <VoicePicker {...VOICEBOX_PICKER} voices={voiceboxOptions(profiles)} value={options.voiceboxProfile} onChange={(id) => set("voiceboxProfile", id)} />
-          ) : (
-            <p className="hint warn">No Voicebox voice profiles found. Create one in Voicebox, or set VOICEBOX_PROFILE.</p>
-          )
-        ) : null}
-
         {options.voiceMode === "omnivoice" || (options.voiceMode === "mixed" && omnivoiceVoices.length) ? (
           omnivoiceVoices.length ? (
-            <VoicePicker {...OMNIVOICE_PICKER} voices={omnivoiceOptions(omnivoiceVoices)} value={options.omnivoiceVoice} onChange={(id) => set("omnivoiceVoice", id)} />
+            <VoicePicker
+              label={OMNIVOICE_PICKER_LABEL}
+              voices={omnivoiceOptions(omnivoiceVoices)}
+              value={pickedVoice(options.omnivoiceVoice, omnivoiceVoices)}
+              onChange={(id) => set("omnivoiceVoice", id)}
+            />
           ) : (
             <p className="hint warn">No OmniVoice voices found. Start it with: npm run omnivoice</p>
           )
         ) : null}
 
         {!status?.whisper ? (
-          <p className="hint">Tip: install whisper.cpp (npm run setup:whisper) so captions follow the real audio for uploads, Voicebox and OmniVoice.</p>
+          <p className="hint">Tip: install whisper.cpp (npm run setup:whisper) so captions follow the real audio for uploads and OmniVoice.</p>
         ) : null}
 
         <div className="row">

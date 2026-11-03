@@ -2,16 +2,25 @@ import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Clip, CreateOptions, Generator } from "../shared/project";
 import { loadEnv } from "../../scripts/env.mjs";
-import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, durationSeconds, elevenLabs, omnivoice, toWav, voicebox } from "../../scripts/providers.mjs";
+import { DEFAULT_OMNIVOICE_URL, durationSeconds, elevenLabs, omnivoice, toWav } from "../../scripts/providers.mjs";
 import { timeWords, type TimedCaptions } from "./captions/timeWords";
 import { speechEnd } from "./captions/trim";
 import { HttpError, ROOT, audioDir, audioUrl, checkSceneId } from "./paths";
 import { dropPending, markPending, withTemp } from "./audioFiles";
 
 const MAX_UPLOAD_SECONDS = 90;
-export { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL };
+export { DEFAULT_OMNIVOICE_URL };
 const DEFAULT_OMNIVOICE_VOICE = "wanita";
 type Language = CreateOptions["language"];
+
+type OmnivoiceVoice = { readonly id: string; readonly name: string; readonly builtin: boolean };
+
+// Marks the voice a scene gets when none is picked: OMNIVOICE_VOICE, else Wanita, else the first one.
+// The editor preselects it, so the list never needs a vague "default" entry.
+export const withDefaultVoice = (voices: readonly OmnivoiceVoice[], preferred: string | undefined) => {
+  const id = [preferred, DEFAULT_OMNIVOICE_VOICE].find((want) => voices.some((v) => v.id === want)) ?? voices[0]?.id;
+  return voices.map((v) => ({ ...v, default: v.id === id }));
+};
 
 type Take = {
   readonly projectId: string;
@@ -71,8 +80,8 @@ const finishClip = async ({ projectId, sceneId, raw, text, source, language, wor
 
 const providerError = (error: unknown) => new HttpError(502, error instanceof Error ? error.message : String(error));
 
-// Per-request voice choices; each falls back to the project option, then .env.local.
-export type VoiceChoice = { readonly voiceboxProfile?: string; readonly omnivoiceVoice?: string };
+// Per-request voice choice; falls back to the project option, then .env.local.
+export type VoiceChoice = { readonly omnivoiceVoice?: string };
 
 export const generateVoice = (
   projectId: string,
@@ -80,7 +89,7 @@ export const generateVoice = (
   text: string,
   provider: Generator,
   language: Language,
-  { voiceboxProfile, omnivoiceVoice }: VoiceChoice = {},
+  { omnivoiceVoice }: VoiceChoice = {},
 ): Promise<Clip> => {
   if (!text.trim()) throw new HttpError(400, "This scene has no narration text to speak.");
   const env = loadEnv(ROOT);
@@ -98,21 +107,12 @@ export const generateVoice = (
       });
       return finishClip({ projectId, sceneId, raw, text, source: "eleven", language, words });
     }
-    if (provider === "omnivoice") {
-      const voice = omnivoiceVoice || env.OMNIVOICE_VOICE || DEFAULT_OMNIVOICE_VOICE;
-      const raw = join(dir, "voice.wav");
-      await omnivoice({ baseUrl: env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL, voice, language })(text, raw).catch((error: unknown) => {
-        throw providerError(error);
-      });
-      return finishClip({ projectId, sceneId, raw, text, source: "omnivoice", language, words: null });
-    }
-    const profileId = voiceboxProfile || (language === "id" ? env.VOICEBOX_PROFILE_ID : env.VOICEBOX_PROFILE_EN) || env.VOICEBOX_PROFILE;
-    if (!profileId) throw new HttpError(400, "Pick a Voicebox voice profile, or set VOICEBOX_PROFILE in .env.local.");
+    const voice = omnivoiceVoice || env.OMNIVOICE_VOICE || DEFAULT_OMNIVOICE_VOICE;
     const raw = join(dir, "voice.wav");
-    await voicebox({ baseUrl: env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL, profileId, language })(text, raw).catch((error: unknown) => {
+    await omnivoice({ baseUrl: env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL, voice, language })(text, raw).catch((error: unknown) => {
       throw providerError(error);
     });
-    return finishClip({ projectId, sceneId, raw, text, source: "voicebox", language, words: null });
+    return finishClip({ projectId, sceneId, raw, text, source: "omnivoice", language, words: null });
   });
 };
 

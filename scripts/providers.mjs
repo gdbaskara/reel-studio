@@ -30,12 +30,7 @@ export const elevenLabs = ({ apiKey, voiceId, modelId }) => async (text, mp3Path
   return finishWords(state);
 };
 
-// Voicebox (github.com/jamiepine/voicebox) runs locally. Qwen3-TTS has no Indonesian,
-// so Indonesian narration goes to Chatterbox with Malay, the closest supported language.
-export const voiceboxEngine = (language) =>
-  language === "id" ? { language: "ms", engine: "chatterbox" } : { language: "en", engine: "qwen" };
-
-// Shared by the local TTS servers (Voicebox, OmniVoice): a refused connection becomes a
+// Shared helper for local TTS servers such as OmniVoice: a refused connection becomes a
 // "start it like this" hint, and FastAPI's {"detail": ...} error bodies become readable messages.
 const localServer = ({ name, notRunning, slow }) => ({
   fetch: async (url, init) => {
@@ -60,39 +55,6 @@ const localServer = ({ name, notRunning, slow }) => ({
   },
   running: (baseUrl) => fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(1_500) }).then((res) => res.ok, () => false),
 });
-
-export const DEFAULT_VOICEBOX_URL = "http://127.0.0.1:17493";
-const VOICEBOX_TIMEOUT_MS = 180_000;
-const voiceboxServer = localServer({
-  name: "Voicebox",
-  notRunning: "Voicebox is not reachable. Open Voicebox and turn on 'Keep server running', or set VOICEBOX_URL.",
-  slow: "Voicebox took too long to answer. The first run may still be downloading its model.",
-});
-
-// Returns null: Voicebox gives no word timings, so captions are timed afterwards.
-export const voicebox = ({ baseUrl, profileId, language }) => async (text, wavPath) => {
-  if (!profileId) throw new Error("Pick a Voicebox voice profile (or set VOICEBOX_PROFILE in .env.local).");
-  const res = await voiceboxServer.fetch(`${baseUrl}/generate/stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile_id: profileId, text, ...voiceboxEngine(language) }),
-    signal: AbortSignal.timeout(VOICEBOX_TIMEOUT_MS),
-  });
-  if (!res.ok) throw await voiceboxServer.error(res);
-  writeFileSync(wavPath, Buffer.from(await res.arrayBuffer()));
-  return null;
-};
-
-export const listVoiceboxProfiles = async (baseUrl) => {
-  const res = await voiceboxServer.fetch(`${baseUrl}/profiles`, { signal: AbortSignal.timeout(5_000) });
-  if (!res.ok) throw await voiceboxServer.error(res);
-  const list = await res.json();
-  return (Array.isArray(list) ? list : [])
-    .filter((p) => typeof p?.id === "string" && p.id)
-    .map((p) => ({ id: p.id, name: String(p.name ?? p.id), language: String(p.language ?? "") }));
-};
-
-export const voiceboxRunning = (baseUrl) => voiceboxServer.running(baseUrl);
 
 // OmniVoice (github.com/k2-fsa/OmniVoice) runs locally via tts/omnivoice (`npm run omnivoice`).
 // It speaks Indonesian natively and clones every clip from one reference voice, so scenes match.

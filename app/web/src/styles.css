@@ -115,3 +115,9 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
   .stage { position: static; }
   .scene-list { grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; }
 }
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted, #8a8f98);
+  opacity: 0.7;
+}

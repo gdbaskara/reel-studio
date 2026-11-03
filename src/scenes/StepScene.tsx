@@ -66,7 +66,7 @@ export const StepScene = ({ step, number, duration }: Props) => (
     <Wobble seed={`step-${number}`}>
       <PopWords text={step.title} fontSize={140} delay={8} />
     </Wobble>
-    <StickyNote text={step.note} delay={45} />
+    {step.note.trim() ? <StickyNote text={step.note} delay={45} /> : null}
     <div style={{ marginTop: 50 }}>
       <Scribble {...DRAWINGS[step.drawing]} delay={70} duration={24} />
     </div>
