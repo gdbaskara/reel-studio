@@ -1,24 +1,24 @@
 import { existsSync } from "node:fs";
 import express, { Router, type Request } from "express";
 import { z } from "zod";
-import { CreateRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, VOICEBOX_PROFILE, musicSettings, type Clip, type Project } from "../shared/project";
+import { CreateRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, musicSettings, type Clip, type Project } from "../shared/project";
+import { blankScenes } from "../shared/blanks";
 import { sceneIdsOf } from "../shared/toReel";
 import { loadEnv } from "../../scripts/env.mjs";
-import { listOmnivoiceVoices, listVoiceboxProfiles, omnivoiceRunning, voiceboxRunning } from "../../scripts/providers.mjs";
+import { listOmnivoiceVoices, omnivoiceRunning } from "../../scripts/providers.mjs";
 import { retimeWords } from "./captions/timeWords";
 import { whisperSetup } from "./captions/whisper";
 import { manualPlan, planWithAi } from "./planner";
 import { isRendering, startRender, videoPath } from "./render";
 import { withProjectLock } from "./lock";
 import { getProject, listProjects, newProjectId, saveProject, writeRender } from "./store";
-import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, generateVoice, importUpload } from "./voice";
+import { DEFAULT_OMNIVOICE_URL, generateVoice, importUpload, withDefaultVoice } from "./voice";
 import { audioInUse, pruneAudio, releasePending } from "./audioFiles";
 import { importMusic, musicFileName } from "./music";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
 
 const ProviderSchema = z.object({
   provider: z.enum(GENERATORS),
-  voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional(),
   omnivoiceVoice: z.string().regex(OMNIVOICE_VOICE).optional(),
 });
 const MUSIC_UPLOAD_LIMIT = "60mb";
@@ -69,32 +69,19 @@ export const apiRouter = (): Router => {
   api.get("/status", async (_req, res) => {
     const env = loadEnv(ROOT);
     const whisper = whisperSetup();
-    const [voicebox, omnivoice] = await Promise.all([
-      voiceboxRunning(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL),
-      omnivoiceRunning(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL),
-    ]);
+    const omnivoice = await omnivoiceRunning(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL);
     res.json({
       planner: env.ANTHROPIC_API_KEY ? "anthropic-api" : "claude-cli",
       elevenlabs: Boolean(env.ELEVENLABS_API_KEY),
-      voicebox,
       omnivoice,
       whisper: Boolean(whisper.bin && whisper.model),
     });
   });
 
-  api.get("/voicebox/profiles", async (_req, res) => {
-    const env = loadEnv(ROOT);
-    try {
-      res.json(await listVoiceboxProfiles(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL));
-    } catch (error) {
-      throw new HttpError(503, error instanceof Error ? error.message : String(error));
-    }
-  });
-
   api.get("/omnivoice/voices", async (_req, res) => {
     const env = loadEnv(ROOT);
     try {
-      res.json(await listOmnivoiceVoices(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL));
+      res.json(withDefaultVoice(await listOmnivoiceVoices(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL), env.OMNIVOICE_VOICE));
     } catch (error) {
       throw new HttpError(503, error instanceof Error ? error.message : String(error));
     }
@@ -156,13 +143,10 @@ export const apiRouter = (): Router => {
 
   api.post("/projects/:id/scenes/:sceneId/voice", async (req, res) => {
     const { id, sceneId } = params(req);
-    const { provider, voiceboxProfile, omnivoiceVoice } = parse(ProviderSchema, req.body);
+    const { provider, omnivoiceVoice } = parse(ProviderSchema, req.body);
     const project = await getProject(id);
     const text = project.plan.narration[sceneId] ?? "";
-    const choice = {
-      voiceboxProfile: voiceboxProfile ?? project.options.voiceboxProfile,
-      omnivoiceVoice: omnivoiceVoice ?? project.options.omnivoiceVoice,
-    };
+    const choice = { omnivoiceVoice: omnivoiceVoice ?? project.options.omnivoiceVoice };
     res.json(await attachClip(id, sceneId, await generateVoice(id, sceneId, text, provider, project.options.language, choice)));
   });
 
@@ -219,6 +203,8 @@ export const apiRouter = (): Router => {
 
   api.post("/projects/:id/render", async (req, res) => {
     const { id } = params(req);
+    const blank = blankScenes((await getProject(id)).plan);
+    if (blank.length) throw new HttpError(400, `Fill in the on-screen text first: ${blank.join(", ")}.`);
     await startRender(id);
     res.status(202).json(await getProject(id));
   });

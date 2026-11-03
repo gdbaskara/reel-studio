@@ -2,14 +2,13 @@ import { z } from "zod";
 
 export const DRAWINGS = ["arrow", "circle", "zigzag", "check", "star"] as const;
 export const PALETTE_NAMES = ["warm", "green", "blue"] as const;
-// "mac" is kept only so projects made with the old macOS voice still open.
-export const VOICE_SOURCES = ["eleven", "voicebox", "omnivoice", "upload", "mac"] as const;
-export const GENERATORS = ["eleven", "voicebox", "omnivoice"] as const;
+// "voicebox" and "mac" are kept only so clips made with those removed voices still open and play.
+export const VOICE_SOURCES = ["eleven", "omnivoice", "upload", "voicebox", "mac"] as const;
+export const GENERATORS = ["eleven", "omnivoice"] as const;
 export const CAPTION_TIMINGS = ["provider", "whisper", "estimate"] as const;
 
 export const SCENE_ID = /^(title|step-[1-9]|outro)$/;
 export const PROJECT_ID = /^[a-z0-9-]{6,40}$/;
-export const VOICEBOX_PROFILE = /^[A-Za-z0-9_-]{1,100}$/;
 // Same rule the local OmniVoice server applies to voice ids (they are file names there).
 export const OMNIVOICE_VOICE = /^[a-z0-9-]{1,40}$/;
 
@@ -34,12 +33,11 @@ export const CreateOptionsSchema = z.object({
   language: z.enum(["id", "en"]),
   stepCount: z.number().int().min(2).max(7),
   planMode: z.enum(["ai", "manual"]),
-  // "eleven" | "voicebox" | "omnivoice": generate every scene's voice right after planning.
+  // "eleven" | "omnivoice": generate every scene's voice right after planning.
   // "upload": leave voices empty so you can upload your own recordings.
   // "mixed": leave voices empty and choose generate or upload per scene.
-  // Older projects saved "mac"; they now use Voicebox.
-  voiceMode: z.preprocess((v) => (v === "mac" ? "voicebox" : v), z.enum(["eleven", "voicebox", "omnivoice", "upload", "mixed"])),
-  voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional(),
+  // Older projects saved "mac" or "voicebox", voices that were removed; they open as "mixed".
+  voiceMode: z.preprocess((v) => (v === "mac" || v === "voicebox" ? "mixed" : v), z.enum(["eleven", "omnivoice", "upload", "mixed"])),
   omnivoiceVoice: z.string().regex(OMNIVOICE_VOICE).optional(),
   captions: z.boolean(),
   palette: z.enum(PALETTE_NAMES),

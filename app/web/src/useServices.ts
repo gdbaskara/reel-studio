@@ -1,30 +1,24 @@
 import { useEffect, useState } from "react";
-import { api, type OmnivoiceVoice, type Status, type VoiceboxProfile } from "./api";
+import { api, type OmnivoiceVoice, type Status } from "./api";
 
 export type Services = {
   readonly status: Status | null;
-  readonly profiles: readonly VoiceboxProfile[];
   readonly omnivoiceVoices: readonly OmnivoiceVoice[];
 };
 
 // Which voice/caption services are available. Re-checked when the window regains focus,
-// so starting Voicebox or OmniVoice, or installing Whisper shows up without a reload.
+// so starting OmniVoice or installing Whisper shows up without a reload.
 export const useServices = (): Services => {
   const [status, setStatus] = useState<Status | null>(null);
-  const [profiles, setProfiles] = useState<readonly VoiceboxProfile[]>([]);
   const [omnivoiceVoices, setOmnivoiceVoices] = useState<readonly OmnivoiceVoice[]>([]);
 
   useEffect(() => {
     let active = true;
     const refresh = async () => {
       const next = await api.status().catch(() => null);
-      const [list, voices] = await Promise.all([
-        next?.voicebox ? api.voiceboxProfiles().catch(() => []) : [],
-        next?.omnivoice ? api.omnivoiceVoices().catch(() => []) : [],
-      ]);
+      const voices = next?.omnivoice ? await api.omnivoiceVoices().catch(() => []) : [];
       if (!active) return;
       setStatus(next);
-      setProfiles(list);
       setOmnivoiceVoices(voices);
     };
     void refresh();
@@ -35,5 +29,5 @@ export const useServices = (): Services => {
     };
   }, []);
 
-  return { status, profiles, omnivoiceVoices };
+  return { status, omnivoiceVoices };
 };

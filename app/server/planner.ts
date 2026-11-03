@@ -72,24 +72,15 @@ export const planWithAi = async (prompt: string, options: CreateOptions): Promis
   return parsed.data;
 };
 
-// Blank plan for "write it myself": placeholders the user overwrites in the editor.
+// Blank plan for "write it myself": every scene starts empty and the editor shows hints instead.
 export const manualPlan = (prompt: string, options: CreateOptions): Plan => {
-  const id = options.language === "id";
-  const steps = Array.from({ length: options.stepCount }, (_, i) => ({
-    title: id ? `Langkah ${i + 1}` : `Step ${i + 1}`,
-    note: id ? "Tulis detailnya di sini" : "Write the detail here",
-    drawing: DRAWINGS[i % DRAWINGS.length],
-  }));
-  const narration = Object.fromEntries([
-    ["title", ""],
-    ...steps.map((_, i) => [`step-${i + 1}`, `${NUMBER_WORDS[options.language][i]}.`]),
-    ["outro", ""],
-  ]);
+  const steps = Array.from({ length: options.stepCount }, (_, i) => ({ title: "", note: "", drawing: DRAWINGS[i % DRAWINGS.length] }));
+  const sceneIds = ["title", ...steps.map((_, i) => `step-${i + 1}`), "outro"];
   return {
     name: prompt.slice(0, 60),
-    title: { lead: id ? "Cara pakai" : "How to use", main: prompt.split(" ").slice(0, 3).join(" ") },
+    title: { lead: "", main: "" },
     steps,
-    outro: { main: id ? "Selamat mencoba" : "Give it a try", sub: "" },
-    narration,
+    outro: { main: "", sub: "" },
+    narration: Object.fromEntries(sceneIds.map((id) => [id, ""])),
   };
 };

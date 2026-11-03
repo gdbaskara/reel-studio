@@ -11,15 +11,12 @@ export const draftOf = (plan: Plan): Draft => ({
   origin: ["title", ...plan.steps.map((_, i) => stepKey(i)), "outro"],
 });
 
-export const addStep = (draft: Draft, language: "id" | "en"): Draft => {
+// New steps start blank; the editor shows hints until they are filled in.
+export const addStep = (draft: Draft): Draft => {
   const { plan, origin } = draft;
   if (plan.steps.length >= 7) return draft;
   const n = plan.steps.length;
-  const step = {
-    title: language === "id" ? `Langkah ${n + 1}` : `Step ${n + 1}`,
-    note: "",
-    drawing: DRAWINGS[n % DRAWINGS.length],
-  };
+  const step = { title: "", note: "", drawing: DRAWINGS[n % DRAWINGS.length] };
   return {
     plan: { ...plan, steps: [...plan.steps, step], narration: { ...plan.narration, [stepKey(n)]: "" } },
     origin: [...origin.slice(0, -1), null, origin[origin.length - 1]],

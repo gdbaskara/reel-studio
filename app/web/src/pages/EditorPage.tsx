@@ -15,7 +15,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const editor = useProjectEditor(projectId);
   const [selected, setSelected] = useState(0);
   const [mode, setMode] = useState<"scene" | "full">("scene");
-  const { status, profiles, omnivoiceVoices } = useServices();
+  const { status, omnivoiceVoices } = useServices();
 
   const { project, preview, look } = editor;
   if (!project || !preview || !look) {
@@ -89,6 +89,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           <SceneInspector
             plan={preview.plan}
             sceneId={sceneId}
+            language={preview.options.language}
             onChange={editor.updatePlan}
             onRemoveStep={() => {
               editor.removeStep(index - 1);
@@ -99,7 +100,6 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             project={preview}
             sceneId={sceneId}
             status={status}
-            profiles={profiles}
             omnivoiceVoices={omnivoiceVoices}
             busy={editor.busy.has(`voice:${sceneId}`)}
             onGenerate={(provider, choice) => editor.generateVoice(sceneId, provider, choice)}
