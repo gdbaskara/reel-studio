@@ -30,14 +30,105 @@ export const elevenLabs = ({ apiKey, voiceId, modelId }) => async (text, mp3Path
   return finishWords(state);
 };
 
-// macOS `say` gives no timings, so words are spread over the clip by length.
-export const macSay = ({ voice, rate }) => async (text, aiffPath) => {
-  // Text goes through a file so narration starting with "-" can never be read as an option.
-  const textPath = `${aiffPath}.txt`;
-  writeFileSync(textPath, text);
-  execFileSync("say", ["-v", voice, "-r", String(rate), "-o", aiffPath, "-f", textPath]);
+// Voicebox (github.com/jamiepine/voicebox) runs locally. Qwen3-TTS has no Indonesian,
+// so Indonesian narration goes to Chatterbox with Malay, the closest supported language.
+export const voiceboxEngine = (language) =>
+  language === "id" ? { language: "ms", engine: "chatterbox" } : { language: "en", engine: "qwen" };
+
+// Shared by the local TTS servers (Voicebox, OmniVoice): a refused connection becomes a
+// "start it like this" hint, and FastAPI's {"detail": ...} error bodies become readable messages.
+const localServer = ({ name, notRunning, slow }) => ({
+  fetch: async (url, init) => {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      if (error?.name === "TimeoutError") throw new Error(slow);
+      throw new Error(notRunning);
+    }
+  },
+  error: async (res) => {
+    const body = await res.text();
+    const detail = (() => {
+      try {
+        const parsed = JSON.parse(body).detail;
+        return typeof parsed === "string" ? parsed : JSON.stringify(parsed);
+      } catch {
+        return body;
+      }
+    })();
+    return new Error(`${name} returned ${res.status}: ${String(detail).slice(0, 300)}`);
+  },
+  running: (baseUrl) => fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(1_500) }).then((res) => res.ok, () => false),
+});
+
+export const DEFAULT_VOICEBOX_URL = "http://127.0.0.1:17493";
+const VOICEBOX_TIMEOUT_MS = 180_000;
+const voiceboxServer = localServer({
+  name: "Voicebox",
+  notRunning: "Voicebox is not reachable. Open Voicebox and turn on 'Keep server running', or set VOICEBOX_URL.",
+  slow: "Voicebox took too long to answer. The first run may still be downloading its model.",
+});
+
+// Returns null: Voicebox gives no word timings, so captions are timed afterwards.
+export const voicebox = ({ baseUrl, profileId, language }) => async (text, wavPath) => {
+  if (!profileId) throw new Error("Pick a Voicebox voice profile (or set VOICEBOX_PROFILE in .env.local).");
+  const res = await voiceboxServer.fetch(`${baseUrl}/generate/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile_id: profileId, text, ...voiceboxEngine(language) }),
+    signal: AbortSignal.timeout(VOICEBOX_TIMEOUT_MS),
+  });
+  if (!res.ok) throw await voiceboxServer.error(res);
+  writeFileSync(wavPath, Buffer.from(await res.arrayBuffer()));
   return null;
 };
+
+export const listVoiceboxProfiles = async (baseUrl) => {
+  const res = await voiceboxServer.fetch(`${baseUrl}/profiles`, { signal: AbortSignal.timeout(5_000) });
+  if (!res.ok) throw await voiceboxServer.error(res);
+  const list = await res.json();
+  return (Array.isArray(list) ? list : [])
+    .filter((p) => typeof p?.id === "string" && p.id)
+    .map((p) => ({ id: p.id, name: String(p.name ?? p.id), language: String(p.language ?? "") }));
+};
+
+export const voiceboxRunning = (baseUrl) => voiceboxServer.running(baseUrl);
+
+// OmniVoice (github.com/k2-fsa/OmniVoice) runs locally via tts/omnivoice (`npm run omnivoice`).
+// It speaks Indonesian natively and clones every clip from one reference voice, so scenes match.
+export const DEFAULT_OMNIVOICE_URL = "http://127.0.0.1:17600";
+export const OMNIVOICE_VOICE_ID = /^[a-z0-9-]{1,40}$/;
+const OMNIVOICE_TIMEOUT_MS = 300_000;
+const omnivoiceServer = localServer({
+  name: "OmniVoice",
+  notRunning: "OmniVoice is not running. Start it with: npm run omnivoice",
+  slow: "OmniVoice took too long to answer. The first run may still be loading its model.",
+});
+
+// Returns null: OmniVoice gives no word timings, so captions are timed afterwards.
+export const omnivoice = ({ baseUrl, voice, language }) => async (text, wavPath) => {
+  if (!OMNIVOICE_VOICE_ID.test(voice ?? "")) throw new Error(`Invalid OmniVoice voice "${voice}". Use lowercase letters, digits and dashes.`);
+  const res = await omnivoiceServer.fetch(`${baseUrl}/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, language, voice }),
+    signal: AbortSignal.timeout(OMNIVOICE_TIMEOUT_MS),
+  });
+  if (!res.ok) throw await omnivoiceServer.error(res);
+  writeFileSync(wavPath, Buffer.from(await res.arrayBuffer()));
+  return null;
+};
+
+export const listOmnivoiceVoices = async (baseUrl) => {
+  const res = await omnivoiceServer.fetch(`${baseUrl}/voices`, { signal: AbortSignal.timeout(5_000) });
+  if (!res.ok) throw await omnivoiceServer.error(res);
+  const list = await res.json();
+  return (Array.isArray(list) ? list : [])
+    .filter((v) => typeof v?.id === "string" && OMNIVOICE_VOICE_ID.test(v.id))
+    .map((v) => ({ id: v.id, name: String(v.name ?? v.id), builtin: v.builtin === true }));
+};
+
+export const omnivoiceRunning = (baseUrl) => omnivoiceServer.running(baseUrl);
 
 export const estimateWords = (text, duration) => {
   const tokens = text.split(/\s+/).filter(Boolean);
@@ -53,6 +144,14 @@ export const toWav = (input, wavPath, maxSeconds = 600) =>
   execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-i", input, "-t", String(maxSeconds), "-vn", "-ar", "48000", wavPath], {
     timeout: 120_000,
   });
+
+// Music is kept as AAC: a few MB per song instead of tens of MB as WAV.
+export const toAac = (input, outPath, maxSeconds = 600) =>
+  execFileSync(
+    "ffmpeg",
+    ["-loglevel", "error", "-y", "-i", input, "-t", String(maxSeconds), "-vn", "-ac", "2", "-ar", "48000", "-c:a", "aac", "-b:a", "192k", outPath],
+    { timeout: 180_000 },
+  );
 
 export const durationSeconds = (wavPath) => {
   const match = execFileSync("afinfo", [wavPath], { encoding: "utf8" }).match(/estimated duration:\s*([\d.]+)/);

@@ -1,24 +1,21 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { sceneIdsOf } from "../../../shared/toReel";
 import { PALETTES } from "../../../../src/palettes";
-import { api, type Status } from "../api";
 import { navigate } from "../App";
 import { useProjectEditor } from "../useProjectEditor";
+import { useServices } from "../useServices";
 import { SceneList } from "../components/SceneList";
 import { ScenePreview } from "../components/ScenePreview";
 import { SceneInspector } from "../components/SceneInspector";
 import { VoicePanel } from "../components/VoicePanel";
 import { RenderBar } from "../components/RenderBar";
+import { MusicPanel } from "../components/MusicPanel";
 
 export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const editor = useProjectEditor(projectId);
   const [selected, setSelected] = useState(0);
   const [mode, setMode] = useState<"scene" | "full">("scene");
-  const [status, setStatus] = useState<Status | null>(null);
-
-  useEffect(() => {
-    api.status().then(setStatus).catch(() => setStatus(null));
-  }, []);
+  const { status, profiles, omnivoiceVoices } = useServices();
 
   const { project, preview, look } = editor;
   if (!project || !preview || !look) {
@@ -58,7 +55,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           <input type="checkbox" checked={look.captions} onChange={(e) => editor.setLook({ ...look, captions: e.target.checked })} />
           Captions
         </label>
-        <RenderBar project={project} busy={editor.busy !== null} onRender={editor.render} onReset={editor.resetRender} />
+        <RenderBar project={project} busy={editor.busy.size > 0} onRender={editor.render} onReset={editor.resetRender} />
       </header>
 
       {editor.error ? (
@@ -78,6 +75,14 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           <div className="player-frame">
             <ScenePreview project={preview} sceneIndex={index} mode={mode} />
           </div>
+          <MusicPanel
+            music={preview.music}
+            settings={look.music}
+            busy={editor.busy.has("music")}
+            onUpload={editor.uploadMusic}
+            onRemove={editor.removeMusic}
+            onChange={editor.setMusic}
+          />
         </section>
 
         <aside className="side">
@@ -93,9 +98,11 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           <VoicePanel
             project={preview}
             sceneId={sceneId}
-            elevenlabs={Boolean(status?.elevenlabs)}
-            busy={editor.busy === `voice:${sceneId}`}
-            onGenerate={(provider) => editor.generateVoice(sceneId, provider)}
+            status={status}
+            profiles={profiles}
+            omnivoiceVoices={omnivoiceVoices}
+            busy={editor.busy.has(`voice:${sceneId}`)}
+            onGenerate={(provider, choice) => editor.generateVoice(sceneId, provider, choice)}
             onUpload={(file) => editor.uploadVoice(sceneId, file)}
             onRemove={() => editor.removeVoice(sceneId)}
           />

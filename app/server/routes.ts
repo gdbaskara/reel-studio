@@ -1,19 +1,28 @@
 import { existsSync } from "node:fs";
 import express, { Router, type Request } from "express";
 import { z } from "zod";
-import { CreateRequestSchema, UpdateRequestSchema, type Clip, type Project } from "../shared/project";
+import { CreateRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, VOICEBOX_PROFILE, musicSettings, type Clip, type Project } from "../shared/project";
 import { sceneIdsOf } from "../shared/toReel";
 import { loadEnv } from "../../scripts/env.mjs";
-import { estimateWords } from "../../scripts/providers.mjs";
+import { listOmnivoiceVoices, listVoiceboxProfiles, omnivoiceRunning, voiceboxRunning } from "../../scripts/providers.mjs";
+import { retimeWords } from "./captions/timeWords";
+import { whisperSetup } from "./captions/whisper";
 import { manualPlan, planWithAi } from "./planner";
 import { isRendering, startRender, videoPath } from "./render";
 import { withProjectLock } from "./lock";
 import { getProject, listProjects, newProjectId, saveProject, writeRender } from "./store";
-import { generateVoice, importUpload, pruneAudio, releasePending } from "./voice";
+import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, generateVoice, importUpload } from "./voice";
+import { audioInUse, pruneAudio, releasePending } from "./audioFiles";
+import { importMusic, musicFileName } from "./music";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
 
-const ProviderSchema = z.object({ provider: z.enum(["eleven", "mac"]) });
-const AUDIO_FILE = /^(title|step-[1-9]|outro)-\d+\.wav$/;
+const ProviderSchema = z.object({
+  provider: z.enum(GENERATORS),
+  voiceboxProfile: z.string().regex(VOICEBOX_PROFILE).optional(),
+  omnivoiceVoice: z.string().regex(OMNIVOICE_VOICE).optional(),
+});
+const MUSIC_UPLOAD_LIMIT = "60mb";
+const AUDIO_FILE = /^((title|step-[1-9]|outro)-\d+\.wav|music-\d+\.m4a)$/;
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
   const result = schema.safeParse(value);
@@ -31,8 +40,11 @@ const params = (req: Request) => ({
 
 // Old audio is only cleaned up when no render is reading it.
 const prune = async (project: Project) => {
-  if (!isRendering(project.id)) await pruneAudio(project.id, Object.values(project.voice));
+  if (isRendering(project.id)) return;
+  await pruneAudio(project.id, audioInUse(project));
 };
+
+const uploadBody = (req: Request): Buffer => (Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0));
 
 // Read-modify-write under the project lock, so slow voice work never overwrites newer edits.
 const mutate = (id: string, change: (project: Project) => Project) =>
@@ -54,9 +66,38 @@ export const apiRouter = (): Router => {
   const api = Router();
   api.use(express.json({ limit: "200kb" }));
 
-  api.get("/status", (_req, res) => {
+  api.get("/status", async (_req, res) => {
     const env = loadEnv(ROOT);
-    res.json({ planner: env.ANTHROPIC_API_KEY ? "anthropic-api" : "claude-cli", elevenlabs: Boolean(env.ELEVENLABS_API_KEY) });
+    const whisper = whisperSetup();
+    const [voicebox, omnivoice] = await Promise.all([
+      voiceboxRunning(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL),
+      omnivoiceRunning(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL),
+    ]);
+    res.json({
+      planner: env.ANTHROPIC_API_KEY ? "anthropic-api" : "claude-cli",
+      elevenlabs: Boolean(env.ELEVENLABS_API_KEY),
+      voicebox,
+      omnivoice,
+      whisper: Boolean(whisper.bin && whisper.model),
+    });
+  });
+
+  api.get("/voicebox/profiles", async (_req, res) => {
+    const env = loadEnv(ROOT);
+    try {
+      res.json(await listVoiceboxProfiles(env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL));
+    } catch (error) {
+      throw new HttpError(503, error instanceof Error ? error.message : String(error));
+    }
+  });
+
+  api.get("/omnivoice/voices", async (_req, res) => {
+    const env = loadEnv(ROOT);
+    try {
+      res.json(await listOmnivoiceVoices(env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL));
+    } catch (error) {
+      throw new HttpError(503, error instanceof Error ? error.message : String(error));
+    }
   });
 
   api.get("/projects", async (_req, res) => {
@@ -88,7 +129,7 @@ export const apiRouter = (): Router => {
 
   api.put("/projects/:id", async (req, res) => {
     const { id } = params(req);
-    const { plan, captions, palette, sceneMap } = parse(UpdateRequestSchema, req.body);
+    const { plan, captions, palette, music, sceneMap } = parse(UpdateRequestSchema, req.body);
     const ids = sceneIdsOf(plan);
     const remap = (project: Project) => Object.fromEntries(
       ids.flatMap((newId) => {
@@ -96,9 +137,9 @@ export const apiRouter = (): Router => {
         const from = sceneMap ? sceneMap[newId] : newId;
         const clip = from ? project.voice[from] : undefined;
         if (!clip) return [];
-        // Uploaded recordings have estimated captions, so they follow edits to the narration text.
+        // Uploaded recordings follow edits to their transcript; captions are re-aligned to what Whisper heard.
         const text = plan.narration[newId] ?? "";
-        const refreshed = clip.source === "upload" && clip.text !== text ? { ...clip, text, words: estimateWords(text, clip.duration) } : clip;
+        const refreshed = clip.source === "upload" && clip.text !== text ? { ...clip, text, ...retimeWords(clip, text, project.options.language) } : clip;
         return [[newId, refreshed]];
       }),
     );
@@ -108,17 +149,21 @@ export const apiRouter = (): Router => {
         name: plan.name,
         plan,
         voice: remap(project),
-        options: { ...project.options, captions, palette },
+        options: { ...project.options, captions, palette, ...(music ? { music } : {}) },
       })),
     );
   });
 
   api.post("/projects/:id/scenes/:sceneId/voice", async (req, res) => {
     const { id, sceneId } = params(req);
-    const { provider } = parse(ProviderSchema, req.body);
+    const { provider, voiceboxProfile, omnivoiceVoice } = parse(ProviderSchema, req.body);
     const project = await getProject(id);
     const text = project.plan.narration[sceneId] ?? "";
-    res.json(await attachClip(id, sceneId, await generateVoice(id, sceneId, text, provider, project.options.language)));
+    const choice = {
+      voiceboxProfile: voiceboxProfile ?? project.options.voiceboxProfile,
+      omnivoiceVoice: omnivoiceVoice ?? project.options.omnivoiceVoice,
+    };
+    res.json(await attachClip(id, sceneId, await generateVoice(id, sceneId, text, provider, project.options.language, choice)));
   });
 
   api.put(
@@ -128,7 +173,7 @@ export const apiRouter = (): Router => {
       const { id, sceneId } = params(req);
       const project = await getProject(id);
       const text = project.plan.narration[sceneId] ?? "";
-      res.json(await attachClip(id, sceneId, await importUpload(id, sceneId, req.body as Buffer, text)));
+      res.json(await attachClip(id, sceneId, await importUpload(id, sceneId, req.body as Buffer, text, project.options.language)));
     },
   );
 
@@ -138,6 +183,29 @@ export const apiRouter = (): Router => {
       await mutate(id, (project) => {
         const { [sceneId]: _removed, ...voice } = project.voice;
         return { ...project, voice };
+      }),
+    );
+  });
+
+  // One music track per project; uploading again replaces it and keeps the volume settings.
+  // The limit fits a 5-minute WAV, the longest the server keeps.
+  api.put("/projects/:id/music", express.raw({ type: () => true, limit: MUSIC_UPLOAD_LIMIT }), async (req, res) => {
+    const { id } = params(req);
+    await getProject(id);
+    const music = await importMusic(id, uploadBody(req), musicFileName(req.get("x-file-name")));
+    try {
+      res.json(await mutate(id, (project) => ({ ...project, music, options: { ...project.options, music: musicSettings(project.options) } })));
+    } finally {
+      releasePending(music);
+    }
+  });
+
+  api.delete("/projects/:id/music", async (req, res) => {
+    const { id } = params(req);
+    res.json(
+      await mutate(id, (project) => {
+        const { music: _removed, ...rest } = project;
+        return rest;
       }),
     );
   });

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Plan, Project } from "../../shared/project";
+import { musicSettings, type Generator, type MusicSettings, type Plan, type Project } from "../../shared/project";
 import { addStep, draftOf, rebaseOrigin, removeStep, sceneMapOf, type Draft } from "../../shared/editPlan";
-import { api } from "./api";
+import { api, type VoiceChoice } from "./api";
 
-type Look = { readonly captions: boolean; readonly palette: Project["options"]["palette"] };
+type Look = { readonly captions: boolean; readonly palette: Project["options"]["palette"]; readonly music: MusicSettings };
 
 const SAVE_DELAY_MS = 700;
 
@@ -13,7 +13,8 @@ export const useProjectEditor = (projectId: string) => {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [look, setLook] = useState<Look | null>(null);
   const [saving, setSaving] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
+  // Labels of actions still running; several can run at once (e.g. a voice and a music upload).
+  const [busy, setBusy] = useState<ReadonlySet<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const version = useRef(0);
   const savedVersion = useRef(0);
@@ -27,7 +28,7 @@ export const useProjectEditor = (projectId: string) => {
       .then((p) => {
         setProject(p);
         setDraft(draftOf(p.plan));
-        setLook({ captions: p.options.captions, palette: p.options.palette });
+        setLook({ captions: p.options.captions, palette: p.options.palette, music: musicSettings(p.options) });
       })
       .catch((e: Error) => setError(e.message));
   }, [projectId]);
@@ -40,7 +41,7 @@ export const useProjectEditor = (projectId: string) => {
     const sceneMap = sceneMapOf(d);
     setSaving(true);
     try {
-      const saved = await api.update(projectId, { plan: d.plan, captions: l.captions, palette: l.palette, sceneMap });
+      const saved = await api.update(projectId, { plan: d.plan, captions: l.captions, palette: l.palette, music: l.music, sceneMap });
       savedVersion.current = sending;
       setProject(saved);
       setDraft((current) => (current ? rebaseOrigin(current, sceneMap) : current));
@@ -81,14 +82,14 @@ export const useProjectEditor = (projectId: string) => {
 
   const run = async (label: string, action: () => Promise<Project>) => {
     setError(null);
-    setBusy(label);
+    setBusy((current) => new Set([...current, label]));
     try {
       await saveNow();
       setProject(await action());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(null);
+      setBusy((current) => new Set([...current].filter((l) => l !== label)));
     }
   };
 
@@ -120,9 +121,12 @@ export const useProjectEditor = (projectId: string) => {
     setLook: setLookValue,
     addStep: () => draft && project && change(addStep(draft, project.options.language)),
     removeStep: (index: number) => draft && change(removeStep(draft, index)),
-    generateVoice: (sceneId: string, provider: "eleven" | "mac") =>
-      run(`voice:${sceneId}`, () => api.generateVoice(projectId, sceneId, provider)),
+    generateVoice: (sceneId: string, provider: Generator, choice?: VoiceChoice) =>
+      run(`voice:${sceneId}`, () => api.generateVoice(projectId, sceneId, provider, choice)),
     uploadVoice: (sceneId: string, file: File) => run(`voice:${sceneId}`, () => api.uploadVoice(projectId, sceneId, file)),
+    uploadMusic: (file: File) => run("music", () => api.uploadMusic(projectId, file)),
+    removeMusic: () => run("music", () => api.removeMusic(projectId)),
+    setMusic: (music: MusicSettings) => look && setLookValue({ ...look, music }),
     removeVoice: (sceneId: string) => run(`voice:${sceneId}`, () => api.removeVoice(projectId, sceneId)),
     render: () => run("render", () => api.render(projectId)),
     resetRender: () => run("render", () => api.resetRender(projectId)),

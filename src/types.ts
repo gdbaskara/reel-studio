@@ -35,8 +35,18 @@ export type VoiceClip = {
 
 export type Voiceover = Readonly<Partial<Record<string, VoiceClip>>>;
 
+// Background music under the whole reel. volume is its level away from the voice (0..1);
+// duck lowers it while a voice clip plays.
+export type Music = {
+  readonly src: string;
+  readonly duration: number;
+  readonly volume: number;
+  readonly duck: boolean;
+};
+
 export type ReelProps = {
   readonly spec: ReelSpec;
   readonly voice: Voiceover;
   readonly captions?: boolean;
+  readonly music?: Music;
 };

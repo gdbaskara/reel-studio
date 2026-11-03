@@ -1,4 +1,4 @@
-// Usage: node scripts/voiceover.mjs <reel> [--provider=eleven|mac]
+// Usage: node scripts/voiceover.mjs <reel> [--provider=eleven|voicebox|omnivoice] [--lang=id|en]
 // Reads voiceover/<reel>.txt (id|text per line), writes public/vo/<reel>/<id>.wav
 // and src/voiceover/<reel>.json with durations and word timings for captions.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -6,20 +6,29 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnv } from "./env.mjs";
-import { durationSeconds, elevenLabs, estimateWords, macSay, toWav } from "./providers.mjs";
+import { DEFAULT_OMNIVOICE_URL, DEFAULT_VOICEBOX_URL, durationSeconds, elevenLabs, estimateWords, omnivoice, toWav, voicebox } from "./providers.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const [reel, ...flags] = process.argv.slice(2);
-const provider = (flags.find((f) => f.startsWith("--provider=")) ?? "--provider=eleven").split("=")[1];
+const flag = (name, fallback) => (flags.find((f) => f.startsWith(`--${name}=`)) ?? `--${name}=${fallback}`).split("=")[1];
+const provider = flag("provider", "eleven");
+const language = flag("lang", "id");
 
 if (!reel || !/^[a-z0-9-]+$/.test(reel)) {
-  console.error("Usage: node scripts/voiceover.mjs <reel> [--provider=eleven|mac]");
+  console.error("Usage: node scripts/voiceover.mjs <reel> [--provider=eleven|voicebox|omnivoice] [--lang=id|en]");
   process.exit(1);
 }
 
 const env = loadEnv(ROOT);
 const synth = (() => {
-  if (provider === "mac") return { run: macSay({ voice: env.MAC_VOICE || "Samantha", rate: env.MAC_RATE || 185 }), ext: "aiff" };
+  if (provider === "voicebox") {
+    const profileId = (language === "id" ? env.VOICEBOX_PROFILE_ID : env.VOICEBOX_PROFILE_EN) || env.VOICEBOX_PROFILE;
+    return { run: voicebox({ baseUrl: env.VOICEBOX_URL || DEFAULT_VOICEBOX_URL, profileId, language }), ext: "wav" };
+  }
+  if (provider === "omnivoice") {
+    const voice = env.OMNIVOICE_VOICE || "wanita";
+    return { run: omnivoice({ baseUrl: env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL, voice, language }), ext: "wav" };
+  }
   if (provider !== "eleven") throw new Error(`Unknown provider "${provider}"`);
   if (!env.ELEVENLABS_API_KEY) throw new Error("Missing ELEVENLABS_API_KEY. Add it to .env.local");
   const run = elevenLabs({

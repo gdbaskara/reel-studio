@@ -1,6 +1,6 @@
 import { PALETTES } from "../../src/palettes";
 import type { ReelProps, ReelSpec } from "../../src/types";
-import type { Project } from "./project";
+import { musicSettings, type Project } from "./project";
 
 export const sceneIdsOf = (plan: Project["plan"]): readonly string[] => [
   "title",
@@ -27,5 +27,8 @@ export const toReelProps = (project: Project, audioBase = ""): ReelProps => {
       { duration: clip.duration, text: clip.text, words: clip.words, src: `${audioBase}${clip.src}` },
     ]),
   );
-  return { spec, voice, captions: project.options.captions };
+  const music = project.music
+    ? { src: `${audioBase}${project.music.src}`, duration: project.music.duration, ...musicSettings(project.options) }
+    : undefined;
+  return { spec, voice, captions: project.options.captions, ...(music ? { music } : {}) };
 };

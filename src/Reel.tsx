@@ -6,6 +6,8 @@ import { buildScenes } from "./timeline";
 import type { ReelProps, ReelSpec } from "./types";
 import { SceneSlot } from "./SceneSlot";
 import { ProgressBar } from "./components/ProgressBar";
+import { BackgroundMusic } from "./components/BackgroundMusic";
+import { sceneStart } from "./music";
 
 export const Canvas = ({ spec, children }: { readonly spec: ReelSpec; readonly children: ReactNode }) => (
   <ThemeProvider value={spec.palette}>
@@ -15,21 +17,32 @@ export const Canvas = ({ spec, children }: { readonly spec: ReelSpec; readonly c
   </ThemeProvider>
 );
 
-export const Reel = ({ spec, voice, captions = true }: ReelProps) => (
-  <Canvas spec={spec}>
-    <Series>
-      {buildScenes(spec, voice).map((scene) => (
-        <Series.Sequence key={scene.voiceId} durationInFrames={scene.frames}>
-          <SceneSlot spec={spec} scene={scene} captions={captions} />
-        </Series.Sequence>
-      ))}
-    </Series>
-    <ProgressBar />
-  </Canvas>
-);
+export const Reel = ({ spec, voice, captions = true, music }: ReelProps) => {
+  const scenes = buildScenes(spec, voice);
+  return (
+    <Canvas spec={spec}>
+      <Series>
+        {scenes.map((scene) => (
+          <Series.Sequence key={scene.voiceId} durationInFrames={scene.frames}>
+            <SceneSlot spec={spec} scene={scene} captions={captions} />
+          </Series.Sequence>
+        ))}
+      </Series>
+      {music ? <BackgroundMusic music={music} scenes={scenes} /> : null}
+      <ProgressBar />
+    </Canvas>
+  );
+};
 
 // Previews a single scene on its own, used by the editor's per-scene player.
-export const SingleScene = ({ spec, voice, captions = true, sceneIndex }: ReelProps & { readonly sceneIndex: number }) => {
-  const scene = buildScenes(spec, voice)[sceneIndex];
-  return <Canvas spec={spec}>{scene ? <SceneSlot spec={spec} scene={scene} captions={captions} /> : null}</Canvas>;
+// Music plays from where this scene sits in the whole reel, so it sounds the same as the render.
+export const SingleScene = ({ spec, voice, captions = true, music, sceneIndex }: ReelProps & { readonly sceneIndex: number }) => {
+  const scenes = buildScenes(spec, voice);
+  const scene = scenes[sceneIndex];
+  return (
+    <Canvas spec={spec}>
+      {scene ? <SceneSlot spec={spec} scene={scene} captions={captions} /> : null}
+      {scene && music ? <BackgroundMusic music={music} scenes={scenes} offset={sceneStart(scenes, sceneIndex)} /> : null}
+    </Canvas>
+  );
 };

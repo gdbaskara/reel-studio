@@ -6,3 +6,5 @@ projects/
 .vitest/
 coverage/
 .DS_Store
+tts/omnivoice/.venv/
+__pycache__/

@@ -3,7 +3,8 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { toReelProps } from "../shared/toReel";
 import { getProject, setRenderActivityCheck, writeRender } from "./store";
-import { HttpError, PORT, ROOT, projectDir } from "./paths";
+import { HttpError, ROOT, projectDir } from "./paths";
+import { serverPort } from "./port";
 
 // One render at a time keeps the machine responsive.
 let busy: string | null = null;
@@ -32,7 +33,7 @@ export const startRender = async (id: string): Promise<void> => {
     missing = Object.keys(project.plan.narration).filter((sceneId) => !project.voice[sceneId]);
     propsPath = join(projectDir(id), "props.json");
     // Chrome inside the renderer fetches the audio from this server, so URLs must be absolute.
-    await writeFile(propsPath, JSON.stringify(toReelProps(project, `http://localhost:${PORT}`)));
+    await writeFile(propsPath, JSON.stringify(toReelProps(project, `http://localhost:${serverPort()}`)));
     await record(id, { status: "rendering", progress: 0 });
   } catch (e) {
     busy = null;

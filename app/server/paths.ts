@@ -4,7 +4,6 @@ import { PROJECT_ID, SCENE_ID } from "../shared/project";
 
 export const ROOT = resolve(fileURLToPath(import.meta.url), "../../..");
 export const DATA_DIR = join(ROOT, "projects");
-export const PORT = Number(process.env.PORT ?? 4310);
 
 export class HttpError extends Error {
   constructor(
