@@ -24,8 +24,8 @@ cat <<MSG
 
 OmniVoice is installed.
 Next steps:
-  1. Start the server:   scripts/run-omnivoice.sh
-     (first start downloads k2-fsa/OmniVoice weights into ~/.cache/huggingface)
+  1. Start the server:   npm run omnivoice
+     (first start downloads the k2-fsa/OmniVoice weights, about 3.3 GB, into ~/.cache/huggingface)
   2. Check it:           curl http://127.0.0.1:\${OMNIVOICE_PORT:-17600}/health
   3. Optional own voice: ${VENV_DIR}/bin/python ${TTS_DIR}/server.py add-voice <id> <audio> "<exact transcript>" [name]
 MSG

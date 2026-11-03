@@ -33,11 +33,12 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
 - ffmpeg (`brew install ffmpeg`)
 - macOS (uses `afinfo` for audio durations)
 - Optional: an ElevenLabs API key
-- Optional: [Voicebox](https://github.com/jamiepine/voicebox) running locally with
-  "Keep server running" on, and at least one voice profile
-- Optional: OmniVoice (Python 3, Apple Silicon or CPU): `npm run setup:omnivoice` once, then
-  `npm run omnivoice` (serves on `127.0.0.1:17600`). Non-commercial use only, see below.
-- Optional: whisper.cpp for caption timing (`npm run setup:whisper`)
+- Optional: [Voicebox](https://github.com/jamiepine/voicebox), with a downloaded model and at
+  least one voice profile (see [Local voices](#local-voices))
+- Optional: OmniVoice (Apple Silicon or CPU, needs `uv`: `brew install uv`). Non-commercial use
+  only, see below.
+- Optional: whisper.cpp for caption timing (`npm run setup:whisper`). Without it, captions use
+  estimated timings.
 - Optional: an Anthropic API key or the `claude` CLI for AI planning
 
 ## Getting started
@@ -48,13 +49,67 @@ cp .env.example .env.local   # then add your keys
 npm run app                  # http://localhost:4310
 ```
 
+To use another port, set `PORT` in `.env.local` (or `PORT=4312 npm run app`). If the port is
+taken, the server stops with a message instead of starting.
+
+npm 11 may warn that the install scripts of `esbuild` and `fsevents` were not run. That is
+harmless: the app does not need them.
+
+The **Manual** plan mode creates placeholder narration (`One.`, `Two.`, empty title and outro).
+Write the narration for each scene before generating its voice.
+
+## Local voices
+
+Both engines run on your machine and download large models the first time. Generate one clip
+to check each before relying on it.
+
+**OmniVoice** (native Indonesian, about 1 GB of Python packages plus 3.3 GB of weights):
+
+```bash
+npm run setup:omnivoice   # once: creates tts/omnivoice/.venv with uv
+npm run omnivoice         # serves 127.0.0.1:17600; the first start downloads the weights
+curl http://127.0.0.1:17600/health
+```
+
+On another port: `OMNIVOICE_PORT=17601 npm run omnivoice`, and set
+`OMNIVOICE_URL=http://127.0.0.1:17601` in `.env.local`.
+
+**Voicebox** (English via Qwen3-TTS, Indonesian sent as Malay via Chatterbox):
+
+1. Run Voicebox on `127.0.0.1:17493`, either way:
+   - Desktop app: install it from [its releases](https://github.com/jamiepine/voicebox) and turn
+     on "Keep server running".
+   - Headless (no app): clone `jamiepine/voicebox`, `brew install just`, run
+     `just setup-python` (Python 3.12, about 2 GB), then
+     `backend/venv/bin/python -m backend.main --host 127.0.0.1 --port 17493`.
+2. Download the models before generating. Reel Studio does not trigger the download, and
+   generating without them fails with a "... is not downloaded yet" error. In the app use Models;
+   headless:
+   ```bash
+   curl -X POST http://127.0.0.1:17493/models/download -H 'Content-Type: application/json' \
+     -d '{"model_name":"qwen-tts-1.7B"}'     # English, about 4.3 GB
+   curl -X POST http://127.0.0.1:17493/models/download -H 'Content-Type: application/json' \
+     -d '{"model_name":"chatterbox-tts"}'    # Indonesian (Malay), about 6.1 GB
+   curl http://127.0.0.1:17493/models/status
+   ```
+3. Create a voice profile from 5-15 s of clean speech and its exact transcript. In the app use
+   Profiles; headless:
+   ```bash
+   curl -X POST http://127.0.0.1:17493/profiles -H 'Content-Type: application/json' \
+     -d '{"name":"My voice","language":"en"}'          # returns the profile id
+   curl -X POST http://127.0.0.1:17493/profiles/<id>/samples \
+     -F file=@ref.wav -F reference_text="The exact words spoken in ref.wav."
+   ```
+4. Pick the profile in the editor, or set `VOICEBOX_PROFILE=<id>` in `.env.local`. Set
+   `VOICEBOX_URL` too if Voicebox is not on `127.0.0.1:17493`.
+
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
 | `npm run app` | Start Reel Studio (Express API + Vite UI on one port) |
 | `npm run setup:whisper` | Install whisper.cpp and download the caption timing model |
-| `npm run setup:omnivoice` | Create the OmniVoice Python environment and download its model |
+| `npm run setup:omnivoice` | Create the OmniVoice Python environment (weights download on first start) |
 | `npm run omnivoice` | Start the local OmniVoice TTS server (`127.0.0.1:17600`) |
 | `npm run studio` | Open Remotion Studio for the demo compositions |
 | `npm run voice:atlas` | Generate voiceover for the demo reel (`--provider=eleven\|voicebox\|omnivoice`) |
