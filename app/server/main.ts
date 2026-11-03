@@ -2,8 +2,10 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { join } from "node:path";
 import { createServer as createVite } from "vite";
 import { apiRouter } from "./routes";
-import { HttpError, PORT, ROOT } from "./paths";
+import { HttpError, ROOT } from "./paths";
+import { serverPort } from "./port";
 
+const PORT = serverPort();
 const app = express();
 const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
 
@@ -39,4 +41,12 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: err instanceof Error ? err.message : "Unexpected error" });
 });
 
-app.listen(PORT, "127.0.0.1", () => console.log(`Reel Studio running at http://localhost:${PORT}`));
+// Express 5 hands listen errors (such as a busy port) to this callback.
+app.listen(PORT, "127.0.0.1", (err?: Error) => {
+  if (err) {
+    const busy = (err as NodeJS.ErrnoException).code === "EADDRINUSE";
+    console.error(busy ? `Port ${PORT} is already in use. Stop the other server or set PORT in .env.local.` : err);
+    process.exit(1);
+  }
+  console.log(`Reel Studio running at http://localhost:${PORT}`);
+});
