@@ -1,0 +1,8 @@
+.env.local
+.env
+node_modules/
+out/
+projects/
+.vitest/
+coverage/
+.DS_Store

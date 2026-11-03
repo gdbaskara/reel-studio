@@ -1,0 +1,35 @@
+{
+  "name": "reel-studio",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "voice:hooks": "node scripts/voiceover.mjs hooks",
+    "voice:atlas": "node scripts/voiceover.mjs atlas",
+    "render:hooks": "remotion render src/index.ts Hooks out/hooks.mp4",
+    "render:atlas": "remotion render src/index.ts Atlas out/atlas.mp4",
+    "app": "tsx app/server/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.540",
+    "@remotion/google-fonts": "^4.0.540",
+    "@remotion/player": "^4.0.540",
+    "express": "^5.1.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.540",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  },
+  "type": "module"
+}

@@ -1,0 +1,7 @@
+title|Cara pakai Atlas, asisten AI internal kita, dalam lima langkah.
+step-1|Satu. Login pakai akun Microsoft kantor kamu.
+step-2|Dua. Ketik pertanyaan di kolom chat. Misalnya: bagaimana prosedur pengajuan cuti?
+step-3|Tiga. Atlas menjawab berdasarkan dokumen resmi yang sudah disetujui.
+step-4|Empat. Buka menu Knowledge untuk melihat dan mengunduh dokumen General dan Divisi.
+step-5|Lima. Semua riwayat chat ada di sidebar. Kamu bisa cari, pin, atau ganti namanya.
+outro|Selamat mencoba Atlas!
