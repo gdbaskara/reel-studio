@@ -1,7 +1,8 @@
 import { AbsoluteFill, Series } from "remotion";
-import type { ReactNode } from "react";
-import { HAND_FONT } from "./fonts";
-import { ThemeProvider } from "./ThemeContext";
+import { useMemo, type ReactNode } from "react";
+import { LookProvider } from "./ThemeContext";
+import { resolveLook } from "./looks/resolve";
+import { Background } from "./components/Background";
 import { buildScenes } from "./timeline";
 import type { ReelProps, ReelSpec } from "./types";
 import { SceneSlot } from "./SceneSlot";
@@ -9,15 +10,19 @@ import { ProgressBar } from "./components/ProgressBar";
 import { BackgroundMusic } from "./components/BackgroundMusic";
 import { sceneStart } from "./music";
 
-export const Canvas = ({ spec, children }: { readonly spec: ReelSpec; readonly children: ReactNode }) => (
-  <ThemeProvider value={spec.palette}>
-    <AbsoluteFill style={{ backgroundColor: spec.palette.paper, fontFamily: HAND_FONT, color: spec.palette.ink }}>
-      {children}
-    </AbsoluteFill>
-  </ThemeProvider>
-);
+export const Canvas = ({ spec, children }: { readonly spec: ReelSpec; readonly children: ReactNode }) => {
+  const look = useMemo(() => resolveLook(spec.look, spec.palette), [spec.look, spec.palette]);
+  return (
+    <LookProvider value={look}>
+      <AbsoluteFill style={{ backgroundColor: spec.palette.paper, fontFamily: look.fonts.display, color: spec.palette.ink }}>
+        {look.background === "flat" ? null : <Background />}
+        {children}
+      </AbsoluteFill>
+    </LookProvider>
+  );
+};
 
-export const Reel = ({ spec, voice, captions = true, music }: ReelProps) => {
+export const Reel = ({ spec, voice, captions = true, music, progressBar = true }: ReelProps) => {
   const scenes = buildScenes(spec, voice);
   return (
     <Canvas spec={spec}>
@@ -29,7 +34,7 @@ export const Reel = ({ spec, voice, captions = true, music }: ReelProps) => {
         ))}
       </Series>
       {music ? <BackgroundMusic music={music} scenes={scenes} /> : null}
-      <ProgressBar />
+      {progressBar ? <ProgressBar /> : null}
     </Canvas>
   );
 };

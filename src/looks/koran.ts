@@ -1,0 +1,48 @@
+import type { Look } from "./types";
+
+// Front-page editorial: heavy serif headlines on grainy newsprint, one ink accent,
+// numbered columns, pasted-in clippings and calm, typeset motion.
+export const KORAN: Look = {
+  id: "koran",
+  name: "Kertas Koran",
+  description: "Serif headlines on newsprint, one ink accent",
+  palettes: [
+    { name: "red-ink", label: "Red Ink", colors: { paper: "#EFEAE0", ink: "#151515", accent: "#B3261E", highlight: "#F3D36B", onAccent: "#FBF8F2" } },
+    { name: "blue-ink", label: "Blue Ink", colors: { paper: "#ECEEEA", ink: "#10182B", accent: "#1D4F9E", highlight: "#A9CBF2", onAccent: "#F9FAF8" } },
+    { name: "sepia", label: "Sepia", colors: { paper: "#ECE2CC", ink: "#2A1F14", accent: "#7A3B12", highlight: "#E8B65A", onAccent: "#FBF6EA" } },
+  ],
+  fonts: { display: { key: "playfair-display", weight: 800 }, caption: { key: "inter", weight: 800 } },
+  type: {
+    titleLead: 100,
+    titleMain: 200,
+    stepTitle: 124,
+    note: 62,
+    outroMain: 140,
+    outroSub: 96,
+    badge: 190,
+    lineHeight: 1.08,
+    letterSpacing: -0.01,
+    uppercase: false,
+  },
+  motion: {
+    word: { damping: 22, stiffness: 140 },
+    stagger: 3,
+    rise: 24,
+    scaleFrom: 0.96,
+    badge: { damping: 20, stiffness: 150 },
+    badgeSpin: 0,
+    note: { damping: 22, stiffness: 120 },
+    noteFrom: "bottom",
+    noteTilt: -1,
+    wobble: 0,
+    fadeOut: 10,
+    outroFadeOut: 16,
+    delays: { titleLead: 4, titleMain: 16, titleMark: 30, stepTitle: 8, stepNote: 40, stepDoodle: 62, outroMain: 2, outroMark: 8, outroSub: 14 },
+  },
+  background: "grain",
+  decoration: "clean",
+  badge: "numeral",
+  note: "card",
+  captions: "box",
+  emphasis: "underline",
+};

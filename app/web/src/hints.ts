@@ -10,6 +10,7 @@ const HINTS = {
     outroMain: "Contoh: Selamat mencoba",
     outroSub: "Opsional",
     narration: "Tulis kalimat yang diucapkan di scene ini",
+    emphasis: "Tip: di teks layar, tulis *kata* untuk menonjolkannya",
   },
   en: {
     titleLead: "e.g. How to use",
@@ -19,6 +20,7 @@ const HINTS = {
     outroMain: "e.g. Give it a try",
     outroSub: "Optional",
     narration: "Write what is said in this scene",
+    emphasis: "Tip: in on-screen text, wrap a *word* in asterisks to make it stand out",
   },
 } as const;
 

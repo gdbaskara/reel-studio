@@ -1,12 +1,16 @@
 import { createContext, useContext } from "react";
+import type { ResolvedLook } from "./looks/types";
 import type { Palette } from "./types";
 
-const ThemeContext = createContext<Palette | null>(null);
+const LookContext = createContext<ResolvedLook | null>(null);
 
-export const ThemeProvider = ThemeContext.Provider;
+export const LookProvider = LookContext.Provider;
 
-export const useTheme = (): Palette => {
-  const palette = useContext(ThemeContext);
-  if (!palette) throw new Error("useTheme must be used inside a ThemeProvider");
-  return palette;
+// The reel's look: palette, fonts, sizes, motion and element styles.
+export const useLook = (): ResolvedLook => {
+  const look = useContext(LookContext);
+  if (!look) throw new Error("useLook must be used inside a LookProvider");
+  return look;
 };
+
+export const useTheme = (): Palette => useLook().palette;

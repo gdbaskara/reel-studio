@@ -116,7 +116,7 @@ export const apiRouter = (): Router => {
 
   api.put("/projects/:id", async (req, res) => {
     const { id } = params(req);
-    const { plan, captions, palette, music, sceneMap } = parse(UpdateRequestSchema, req.body);
+    const { plan, captions, palette, look, progressBar, music, sceneMap } = parse(UpdateRequestSchema, req.body);
     const ids = sceneIdsOf(plan);
     const remap = (project: Project) => Object.fromEntries(
       ids.flatMap((newId) => {
@@ -136,7 +136,14 @@ export const apiRouter = (): Router => {
         name: plan.name,
         plan,
         voice: remap(project),
-        options: { ...project.options, captions, palette, ...(music ? { music } : {}) },
+        options: {
+          ...project.options,
+          captions,
+          palette,
+          ...(look ? { look } : {}),
+          ...(progressBar === undefined ? {} : { progressBar }),
+          ...(music ? { music } : {}),
+        },
       })),
     );
   });

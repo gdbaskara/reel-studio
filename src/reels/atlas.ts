@@ -1,9 +1,9 @@
-import { PALETTES } from "../palettes";
+import { NOTEBOOK } from "../looks/notebook";
 import type { ReelSpec } from "../types";
 
 export const ATLAS_REEL: ReelSpec = {
   id: "atlas",
-  palette: PALETTES.green,
+  palette: NOTEBOOK.palettes[0].colors,
   title: { lead: "Cara pakai", main: "Atlas" },
   steps: [
     { title: "Login", note: "Pakai akun Microsoft kantor", drawing: "arrow" },

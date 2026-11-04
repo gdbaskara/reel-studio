@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { LOOK_IDS } from "../../src/looks/types";
 
 export const DRAWINGS = ["arrow", "circle", "zigzag", "check", "star"] as const;
-export const PALETTE_NAMES = ["warm", "green", "blue"] as const;
+// Palette names belong to a look (e.g. Notebook has warm, green and blue); unknown names fall back to the look's first.
+export const PALETTE_NAME = /^[a-z0-9-]{1,30}$/;
 // "voicebox" and "mac" are kept only so clips made with those removed voices still open and play.
 export const VOICE_SOURCES = ["eleven", "omnivoice", "upload", "voicebox", "mac"] as const;
 export const GENERATORS = ["eleven", "omnivoice"] as const;
@@ -40,7 +42,10 @@ export const CreateOptionsSchema = z.object({
   voiceMode: z.preprocess((v) => (v === "mac" || v === "voicebox" ? "mixed" : v), z.enum(["eleven", "omnivoice", "upload", "mixed"])),
   omnivoiceVoice: z.string().regex(OMNIVOICE_VOICE).optional(),
   captions: z.boolean(),
-  palette: z.enum(PALETTE_NAMES),
+  palette: z.string().regex(PALETTE_NAME),
+  // Older projects have no look (they use Notebook) and always show the progress bar.
+  look: z.enum(LOOK_IDS).optional(),
+  progressBar: z.boolean().optional(),
   // Set once music settings are first saved; older projects have none.
   music: MusicSettingsSchema.optional(),
 });
@@ -98,12 +103,14 @@ export const ProjectSchema = z.object({
   render: RenderStateSchema,
 });
 
-// What the editor may send back when saving: the plan, the caption/palette toggles and music settings.
+// What the editor may send back when saving: the plan, the look, palette, caption and progress bar choices and music settings.
 // sceneMap maps each new scene id to the old one whose voice it keeps (after adding or removing steps).
 export const UpdateRequestSchema = z.object({
   plan: PlanSchema,
   captions: z.boolean(),
-  palette: z.enum(PALETTE_NAMES),
+  palette: z.string().regex(PALETTE_NAME),
+  look: z.enum(LOOK_IDS).optional(),
+  progressBar: z.boolean().optional(),
   music: MusicSettingsSchema.optional(),
   sceneMap: z.record(z.string().regex(SCENE_ID), z.string().regex(SCENE_ID)).optional(),
 });

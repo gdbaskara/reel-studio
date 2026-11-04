@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { musicSettings, type Generator, type MusicSettings, type Plan, type Project } from "../../shared/project";
+import type { Generator, MusicSettings, Plan, Project } from "../../shared/project";
 import { addStep, draftOf, rebaseOrigin, removeStep, sceneMapOf, type Draft } from "../../shared/editPlan";
 import { api, type VoiceChoice } from "./api";
-
-type Look = { readonly captions: boolean; readonly palette: Project["options"]["palette"]; readonly music: MusicSettings };
+import { applyStyle, styleOf, type Style } from "./style";
 
 const SAVE_DELAY_MS = 700;
 
@@ -11,16 +10,16 @@ const SAVE_DELAY_MS = 700;
 export const useProjectEditor = (projectId: string) => {
   const [project, setProject] = useState<Project | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [look, setLook] = useState<Look | null>(null);
+  const [style, setStyle] = useState<Style | null>(null);
   const [saving, setSaving] = useState(false);
   // Labels of actions still running; several can run at once (e.g. a voice and a music upload).
   const [busy, setBusy] = useState<ReadonlySet<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const version = useRef(0);
   const savedVersion = useRef(0);
-  const latest = useRef<{ draft: Draft | null; look: Look | null }>({ draft: null, look: null });
+  const latest = useRef<{ draft: Draft | null; style: Style | null }>({ draft: null, style: null });
   const inflight = useRef<Promise<boolean> | null>(null);
-  latest.current = { draft, look };
+  latest.current = { draft, style };
 
   useEffect(() => {
     api
@@ -28,7 +27,7 @@ export const useProjectEditor = (projectId: string) => {
       .then((p) => {
         setProject(p);
         setDraft(draftOf(p.plan));
-        setLook({ captions: p.options.captions, palette: p.options.palette, music: musicSettings(p.options) });
+        setStyle(styleOf(p.options));
       })
       .catch((e: Error) => setError(e.message));
   }, [projectId]);
@@ -36,13 +35,13 @@ export const useProjectEditor = (projectId: string) => {
   // Saves run one at a time; each sends the scene mapping for the draft as it was at that moment.
   // Resolves false when the save failed, so actions do not run against an outdated plan.
   const saveOnce = useCallback(async (): Promise<boolean> => {
-    const { draft: d, look: l } = latest.current;
-    if (!d || !l || savedVersion.current === version.current) return true;
+    const { draft: d, style: s } = latest.current;
+    if (!d || !s || savedVersion.current === version.current) return true;
     const sending = version.current;
     const sceneMap = sceneMapOf(d);
     setSaving(true);
     try {
-      const saved = await api.update(projectId, { plan: d.plan, captions: l.captions, palette: l.palette, music: l.music, sceneMap });
+      const saved = await api.update(projectId, { plan: d.plan, ...s, sceneMap });
       savedVersion.current = sending;
       setProject(saved);
       setDraft((current) => (current ? rebaseOrigin(current, sceneMap) : current));
@@ -70,7 +69,7 @@ export const useProjectEditor = (projectId: string) => {
     if (version.current === savedVersion.current) return;
     const timer = setTimeout(() => void saveNow(), SAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [draft, look, saveNow]);
+  }, [draft, style, saveNow]);
 
   const change = (next: Draft) => {
     version.current += 1;
@@ -78,9 +77,9 @@ export const useProjectEditor = (projectId: string) => {
   };
 
   const updatePlan = (fn: (plan: Plan) => Plan) => draft && change({ ...draft, plan: fn(draft.plan) });
-  const setLookValue = (next: Look) => {
+  const setStyleValue = (next: Style) => {
     version.current += 1;
-    setLook(next);
+    setStyle(next);
   };
 
   const run = async (label: string, action: () => Promise<Project>) => {
@@ -108,21 +107,21 @@ export const useProjectEditor = (projectId: string) => {
   }, [rendering, projectId]);
 
   const preview = useMemo(
-    () => (project && draft && look ? { ...project, plan: draft.plan, options: { ...project.options, ...look } } : null),
-    [project, draft, look],
+    () => (project && draft && style ? applyStyle({ ...project, plan: draft.plan }, style) : null),
+    [project, draft, style],
   );
 
   return {
     project,
     preview,
     draft,
-    look,
+    style,
     saving,
     busy,
     error,
     dismissError: () => setError(null),
     updatePlan,
-    setLook: setLookValue,
+    setStyle: setStyleValue,
     addStep: () => draft && project && change(addStep(draft)),
     removeStep: (index: number) => draft && change(removeStep(draft, index)),
     generateVoice: (sceneId: string, provider: Generator, choice?: VoiceChoice) =>
@@ -130,7 +129,7 @@ export const useProjectEditor = (projectId: string) => {
     uploadVoice: (sceneId: string, file: File) => run(`voice:${sceneId}`, () => api.uploadVoice(projectId, sceneId, file)),
     uploadMusic: (file: File) => run("music", () => api.uploadMusic(projectId, file)),
     removeMusic: () => run("music", () => api.removeMusic(projectId)),
-    setMusic: (music: MusicSettings) => look && setLookValue({ ...look, music }),
+    setMusic: (music: MusicSettings) => style && setStyleValue({ ...style, music }),
     removeVoice: (sceneId: string) => run(`voice:${sceneId}`, () => api.removeVoice(projectId, sceneId)),
     render: () => run("render", () => api.render(projectId)),
     resetRender: () => run("render", () => api.resetRender(projectId)),

@@ -1,9 +1,9 @@
-import { PALETTES } from "../palettes";
+import { NOTEBOOK } from "../looks/notebook";
 import type { ReelSpec } from "../types";
 
 export const HOOKS_REEL: ReelSpec = {
   id: "hooks",
-  palette: PALETTES.warm,
+  palette: NOTEBOOK.palettes[1].colors,
   title: { lead: "3 hooks that", main: "stop the scroll" },
   steps: [
     { title: "Show the result first", note: "\"I made this in 10 minutes.\"", drawing: "arrow" },

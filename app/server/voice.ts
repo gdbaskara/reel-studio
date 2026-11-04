@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Clip, CreateOptions, Generator } from "../shared/project";
 import { loadEnv } from "../../scripts/env.mjs";
 import { DEFAULT_OMNIVOICE_URL, durationSeconds, elevenLabs, omnivoice, toWav } from "../../scripts/providers.mjs";
+import { plainText } from "../../src/looks/emphasis";
 import { timeWords, type TimedCaptions } from "./captions/timeWords";
 import { speechEnd } from "./captions/trim";
 import { HttpError, ROOT, audioDir, audioUrl, checkSceneId } from "./paths";
@@ -92,6 +93,8 @@ export const generateVoice = (
   { omnivoiceVoice }: VoiceChoice = {},
 ): Promise<Clip> => {
   if (!text.trim()) throw new HttpError(400, "This scene has no narration text to speak.");
+  // The voice reads the words only; *emphasis* markers stay in the script for the captions.
+  const spoken = plainText(text);
   const env = loadEnv(ROOT);
   return withTemp(async (dir) => {
     if (provider === "eleven") {
@@ -102,14 +105,14 @@ export const generateVoice = (
         modelId: env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
       });
       const raw = join(dir, "voice.mp3");
-      const words = await synth(text, raw).catch((error: unknown) => {
+      const words = await synth(spoken, raw).catch((error: unknown) => {
         throw providerError(error);
       });
       return finishClip({ projectId, sceneId, raw, text, source: "eleven", language, words });
     }
     const voice = omnivoiceVoice || env.OMNIVOICE_VOICE || DEFAULT_OMNIVOICE_VOICE;
     const raw = join(dir, "voice.wav");
-    await omnivoice({ baseUrl: env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL, voice, language })(text, raw).catch((error: unknown) => {
+    await omnivoice({ baseUrl: env.OMNIVOICE_URL || DEFAULT_OMNIVOICE_URL, voice, language })(spoken, raw).catch((error: unknown) => {
       throw providerError(error);
     });
     return finishClip({ projectId, sceneId, raw, text, source: "omnivoice", language, words: null });

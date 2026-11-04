@@ -1,0 +1,35 @@
+import { Easing, interpolate, useCurrentFrame } from "remotion";
+import { useLook } from "../ThemeContext";
+import type { Drawing } from "../types";
+import { DRAWINGS, UNDERLINE } from "./drawings";
+import { Scribble } from "./Scribble";
+
+const grow = (frame: number, delay: number, duration: number) =>
+  interpolate(frame, [delay, delay + duration], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
+
+// Under the title: a marker scribble, or a clean bar that grows from the center.
+export const TitleMark = ({ delay }: { readonly delay: number }) => {
+  const frame = useCurrentFrame();
+  const { decoration, palette } = useLook();
+  if (decoration === "scribble") return <Scribble {...UNDERLINE} delay={delay} duration={22} strokeWidth={14} />;
+  return <div style={{ width: 520 * grow(frame, delay, 18), height: 18, borderRadius: 9, backgroundColor: palette.accent, margin: "24px auto 0" }} />;
+};
+
+// Around the outro line: a marker circle, or a highlight band that sweeps in behind the text.
+export const OutroMark = ({ delay }: { readonly delay: number }) => {
+  const frame = useCurrentFrame();
+  const { decoration, palette, markOpacity = 0.55 } = useLook();
+  if (decoration === "scribble") return <Scribble {...DRAWINGS.circle} width={1120} delay={delay} duration={22} color={palette.accent} />;
+  const t = grow(frame, delay, 16);
+  return <div style={{ width: 980, height: "62%", backgroundColor: palette.highlight, opacity: markOpacity, transform: `scaleX(${t})`, borderRadius: 24 }} />;
+};
+
+// The doodle under a step: a marker stroke, or a thinner, even line in the accent color.
+export const Doodle = ({ drawing, delay }: { readonly drawing: Drawing; readonly delay: number }) => {
+  const { decoration, palette } = useLook();
+  return decoration === "scribble" ? (
+    <Scribble {...DRAWINGS[drawing]} delay={delay} duration={24} />
+  ) : (
+    <Scribble {...DRAWINGS[drawing]} width={DRAWINGS[drawing].width * 0.8} delay={delay} duration={20} strokeWidth={7} color={palette.accent} />
+  );
+};

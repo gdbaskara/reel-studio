@@ -1,0 +1,49 @@
+import type { Look } from "./types";
+
+// Friendly and soft: rounded heavy type, pastel glow, white cards and a gentle bounce.
+// Accents are deepened pastels so titles and active caption words stay readable.
+export const PASTEL: Look = {
+  id: "pastel",
+  name: "Soft Pastel",
+  description: "Rounded type, pastel glow, soft cards",
+  palettes: [
+    { name: "lilac", label: "Lilac", colors: { paper: "#F7F2FF", ink: "#2E2350", accent: "#7B5CD6", highlight: "#FFD3C2", onAccent: "#FFFFFF" } },
+    { name: "peach", label: "Peach", colors: { paper: "#FFF4EC", ink: "#3A2430", accent: "#C24A3F", highlight: "#C9F0DF", onAccent: "#FFFFFF" } },
+    { name: "mint", label: "Mint", colors: { paper: "#EEFAF6", ink: "#163A3A", accent: "#1B7A7E", highlight: "#E6D9FF", onAccent: "#FFFFFF" } },
+  ],
+  fonts: { display: { key: "nunito", weight: 800 }, caption: { key: "nunito", weight: 900 } },
+  type: {
+    titleLead: 110,
+    titleMain: 190,
+    stepTitle: 104,
+    note: 58,
+    outroMain: 128,
+    outroSub: 116,
+    badge: 116,
+    lineHeight: 1.12,
+    letterSpacing: -0.01,
+    uppercase: false,
+  },
+  motion: {
+    word: { damping: 11, stiffness: 120 },
+    stagger: 4,
+    rise: 36,
+    scaleFrom: 0.75,
+    badge: { damping: 8, stiffness: 140 },
+    badgeSpin: -12,
+    note: { damping: 13, stiffness: 110 },
+    noteFrom: "bottom",
+    noteTilt: -1,
+    wobble: 0.4,
+    fadeOut: 10,
+    outroFadeOut: 16,
+    delays: { titleLead: 4, titleMain: 16, titleMark: 32, stepTitle: 8, stepNote: 40, stepDoodle: 62, outroMain: 2, outroMark: 8, outroSub: 14 },
+  },
+  background: "gradient",
+  decoration: "clean",
+  markOpacity: 0.75,
+  badge: "circle",
+  note: "card",
+  captions: "pill",
+  emphasis: "marker",
+};

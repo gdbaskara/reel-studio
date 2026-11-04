@@ -1,0 +1,49 @@
+import type { Look } from "./types";
+
+// Dark techy look: near-black paper lit by a neon glow, wide geometric type, quick and precise motion.
+// Highlights stay mid-bright so they read on the dark caption outline and stay dim enough behind the outro line.
+export const NEON: Look = {
+  id: "neon",
+  name: "Neon Night",
+  description: "Dark, glowing neon, crisp tech type",
+  palettes: [
+    { name: "cyan", label: "Cyan", colors: { paper: "#070B14", ink: "#E6F0FF", accent: "#25E2FF", highlight: "#FF3EB5", onAccent: "#070B14" } },
+    { name: "magenta", label: "Magenta", colors: { paper: "#0F0814", ink: "#F8EDFF", accent: "#FF5CDC", highlight: "#8F72FF", onAccent: "#0F0814" } },
+    { name: "lime", label: "Lime", colors: { paper: "#080D08", ink: "#ECF7E4", accent: "#B8FF3C", highlight: "#FF7A2F", onAccent: "#080D08" } },
+  ],
+  fonts: { display: { key: "unbounded", weight: 700 }, caption: { key: "space-grotesk", weight: 700 } },
+  type: {
+    titleLead: 84,
+    titleMain: 150,
+    stepTitle: 88,
+    note: 50,
+    outroMain: 110,
+    outroSub: 80,
+    badge: 96,
+    lineHeight: 1.12,
+    letterSpacing: -0.02,
+    uppercase: false,
+  },
+  motion: {
+    word: { damping: 18, stiffness: 260 },
+    stagger: 3,
+    rise: 24,
+    scaleFrom: 0.85,
+    badge: { damping: 14, stiffness: 240 },
+    badgeSpin: 90,
+    note: { damping: 20, stiffness: 220 },
+    noteFrom: "bottom",
+    noteTilt: 0,
+    wobble: 0,
+    fadeOut: 6,
+    outroFadeOut: 10,
+    delays: { titleLead: 3, titleMain: 13, titleMark: 26, stepTitle: 6, stepNote: 34, stepDoodle: 54, outroMain: 2, outroMark: 8, outroSub: 14 },
+  },
+  background: "gradient",
+  decoration: "clean",
+  markOpacity: 0.3,
+  badge: "ring",
+  note: "pill",
+  captions: "outline",
+  emphasis: "color",
+};
