@@ -11,6 +11,11 @@ import { OMNIVOICE_PICKER_LABEL, omnivoiceOptions, pickedVoice } from "../voices
 import { useServices } from "../useServices";
 import { defaultVoiceMode } from "../voiceDefault";
 import { firstPalette } from "../style";
+import { useSavedStyles } from "../useSavedStyles";
+import { StyleSwatch } from "../components/SavedStylesBar";
+
+// Where a new reel's look comes from: the AI planner, the look chips, or a saved style.
+type LookSource = { readonly kind: "ai" } | { readonly kind: "look" } | { readonly kind: "style"; readonly id: string };
 
 const DEFAULTS: CreateOptions = {
   language: "id",
@@ -31,6 +36,10 @@ export const CreatePage = () => {
   const [error, setError] = useState<string | null>(null);
   // Until the user picks a voiceover, it follows the language and the running services.
   const [voiceChosen, setVoiceChosen] = useState(false);
+  const [lookSource, setLookSource] = useState<LookSource>({ kind: "ai" });
+  const saved = useSavedStyles();
+  // The AI can only pick a look while it writes the plan.
+  const aiPicks = lookSource.kind === "ai" && options.planMode === "ai";
 
   useEffect(() => {
     api.list().then(setProjects).catch(() => setProjects([]));
@@ -50,7 +59,12 @@ export const CreatePage = () => {
       setProgress(options.planMode === "ai" ? "Writing the plan with AI... (up to a minute)" : "Setting up your scenes...");
       // Save the voice the dropdown shows, so generation never falls back to a different one.
       const omnivoiceVoice = pickedVoice(options.omnivoiceVoice, omnivoiceVoices) ?? options.omnivoiceVoice;
-      const project = await api.create({ prompt, options: { ...options, omnivoiceVoice } });
+      const project = await api.create({
+        prompt,
+        options: { ...options, omnivoiceVoice },
+        ...(aiPicks ? { autoLook: true } : {}),
+        ...(lookSource.kind === "style" ? { styleId: lookSource.id } : {}),
+      });
       const mode = options.voiceMode;
       // A manual plan starts with empty narration, so there is nothing to speak yet.
       if (options.planMode === "ai" && (mode === "eleven" || mode === "omnivoice")) {
@@ -159,17 +173,51 @@ export const CreatePage = () => {
           <fieldset className="choice">
             <legend>5. Look</legend>
             <div className="look-chips">
+              {options.planMode === "ai" ? (
+                <button
+                  type="button"
+                  className={`look-chip${aiPicks ? " selected" : ""}`}
+                  aria-pressed={aiPicks}
+                  title="The AI picks the look that fits your topic. You can change it in the editor."
+                  onClick={() => setLookSource({ kind: "ai" })}
+                >
+                  AI picks
+                </button>
+              ) : null}
+              {saved.styles.map((style) => {
+                const selected = lookSource.kind === "style" && lookSource.id === style.id;
+                return (
+                  <button
+                    key={style.id}
+                    type="button"
+                    className={`look-chip${selected ? " selected" : ""}`}
+                    aria-pressed={selected}
+                    title="One of your saved styles"
+                    onClick={() => {
+                      setLookSource({ kind: "style", id: style.id });
+                      set("captions", style.captions);
+                    }}
+                  >
+                    <StyleSwatch style={style} />
+                    {style.name}
+                  </button>
+                );
+              })}
               {LOOK_IDS.map((id) => {
                 const { name, description, palettes } = LOOKS[id];
                 const { paper, accent, highlight } = palettes[0].colors;
+                const selected = !aiPicks && lookSource.kind !== "style" && options.look === id;
                 return (
                   <button
                     key={id}
                     type="button"
-                    className={`look-chip${options.look === id ? " selected" : ""}`}
-                    aria-pressed={options.look === id}
+                    className={`look-chip${selected ? " selected" : ""}`}
+                    aria-pressed={selected}
                     title={description}
-                    onClick={() => setOptions((o) => ({ ...o, look: id, palette: firstPalette(id) }))}
+                    onClick={() => {
+                      setLookSource({ kind: "look" });
+                      setOptions((o) => ({ ...o, look: id, palette: firstPalette(id) }));
+                    }}
                   >
                     {[paper, accent, highlight].map((c, i) => (
                       <i key={i} style={{ background: c }} />
@@ -199,7 +247,23 @@ export const CreatePage = () => {
             {projects.map((p) => (
               <li key={p.id}>
                 <a href={`#/p/${p.id}`}>{p.name}</a>
-                <time>{new Date(p.updatedAt).toLocaleString()}</time>
+                <span className="project-meta">
+                  <time>{new Date(p.updatedAt).toLocaleString()}</time>
+                  <button
+                    type="button"
+                    className="link"
+                    disabled={busy}
+                    title="Copy this reel to use as a template"
+                    onClick={() =>
+                      api
+                        .duplicate(p.id)
+                        .then((copy) => navigate(copy.id))
+                        .catch((e: Error) => setError(e.message))
+                    }
+                  >
+                    Duplicate
+                  </button>
+                </span>
               </li>
             ))}
           </ul>

@@ -27,6 +27,7 @@ describe("styleOf", () => {
       palette: "warm",
       captions: true,
       progressBar: true,
+      brand: { handle: "", position: "top-left" },
       music: { volume: 0.3, duck: true },
     });
   });

@@ -10,6 +10,7 @@ export const GENERATORS = ["eleven", "omnivoice"] as const;
 export const CAPTION_TIMINGS = ["provider", "whisper", "estimate"] as const;
 
 export const SCENE_ID = /^(title|step-[1-9]|outro)$/;
+export const STYLE_ID = /^s-[a-z0-9-]{4,40}$/;
 export const PROJECT_ID = /^[a-z0-9-]{6,40}$/;
 // Same rule the local OmniVoice server applies to voice ids (they are file names there).
 export const OMNIVOICE_VOICE = /^[a-z0-9-]{1,40}$/;
@@ -31,6 +32,24 @@ export const MusicSchema = z.object({
   name: text(120),
 });
 
+// A handle such as @tokoku and an optional logo, shown in one of the top corners of every scene.
+// The bottom is left free for captions and the platform's own buttons.
+export const BRAND_POSITIONS = ["top-left", "top-center", "top-right"] as const;
+export const BrandSchema = z.object({
+  handle: text(30),
+  position: z.enum(BRAND_POSITIONS),
+});
+export const DEFAULT_BRAND_POSITION = "top-left";
+
+// Logos are shrunk on upload and kept inline as a PNG data URL, so a saved style or a copied
+// project carries its logo without any files to manage.
+export const LOGO_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
+export const LogoSchema = z.object({
+  src: z.string().max(400_000).regex(LOGO_DATA_URL),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+
 export const CreateOptionsSchema = z.object({
   language: z.enum(["id", "en"]),
   stepCount: z.number().int().min(2).max(7),
@@ -46,6 +65,7 @@ export const CreateOptionsSchema = z.object({
   // Older projects have no look (they use Notebook) and always show the progress bar.
   look: z.enum(LOOK_IDS).optional(),
   progressBar: z.boolean().optional(),
+  brand: BrandSchema.optional(),
   // Set once music settings are first saved; older projects have none.
   music: MusicSettingsSchema.optional(),
 });
@@ -53,6 +73,9 @@ export const CreateOptionsSchema = z.object({
 export const CreateRequestSchema = z.object({
   prompt: text(1500).min(3),
   options: CreateOptionsSchema,
+  // Let the AI planner pick the look (only with an AI plan), or start from a saved style.
+  autoLook: z.boolean().optional(),
+  styleId: z.string().regex(STYLE_ID).optional(),
 });
 
 export const StepSchema = z.object({
@@ -100,6 +123,7 @@ export const ProjectSchema = z.object({
   plan: PlanSchema,
   voice: z.record(z.string().regex(SCENE_ID), ClipSchema),
   music: MusicSchema.optional(),
+  logo: LogoSchema.optional(),
   render: RenderStateSchema,
 });
 
@@ -111,6 +135,8 @@ export const UpdateRequestSchema = z.object({
   palette: z.string().regex(PALETTE_NAME),
   look: z.enum(LOOK_IDS).optional(),
   progressBar: z.boolean().optional(),
+  // Absent keeps the saved brand; the editor always sends it once it has one.
+  brand: BrandSchema.optional(),
   music: MusicSettingsSchema.optional(),
   sceneMap: z.record(z.string().regex(SCENE_ID), z.string().regex(SCENE_ID)).optional(),
 });
@@ -118,6 +144,9 @@ export const UpdateRequestSchema = z.object({
 export type CreateOptions = z.infer<typeof CreateOptionsSchema>;
 export type MusicSettings = z.infer<typeof MusicSettingsSchema>;
 export type Music = z.infer<typeof MusicSchema>;
+export type Brand = z.infer<typeof BrandSchema>;
+export type BrandPosition = (typeof BRAND_POSITIONS)[number];
+export type Logo = z.infer<typeof LogoSchema>;
 export type CreateRequest = z.infer<typeof CreateRequestSchema>;
 export type Plan = z.infer<typeof PlanSchema>;
 export type Clip = z.infer<typeof ClipSchema>;

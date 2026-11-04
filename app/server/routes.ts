@@ -8,7 +8,7 @@ import { loadEnv } from "../../scripts/env.mjs";
 import { listOmnivoiceVoices, omnivoiceRunning } from "../../scripts/providers.mjs";
 import { retimeWords } from "./captions/timeWords";
 import { whisperSetup } from "./captions/whisper";
-import { manualPlan, planWithAi } from "./planner";
+import { manualPlan, planWithAi, type PlannerReply } from "./planner";
 import { isRendering, startRender, videoPath } from "./render";
 import { withProjectLock } from "./lock";
 import { getProject, listProjects, newProjectId, saveProject, writeRender } from "./store";
@@ -16,6 +16,12 @@ import { DEFAULT_OMNIVOICE_URL, generateVoice, importUpload, withDefaultVoice } 
 import { audioInUse, pruneAudio, releasePending } from "./audioFiles";
 import { importMusic, musicFileName } from "./music";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
+import { LOGO_UPLOAD_LIMIT, importLogo } from "./logo";
+import { duplicateProject } from "./duplicate";
+import { newStyleId, savedStyles } from "./styleStore";
+import { ApplyStyleRequestSchema, SaveStyleRequestSchema, optionsWithSavedStyle, styleFromProject, withSavedStyle } from "../shared/savedStyle";
+import { firstPaletteOf } from "../../src/looks";
+import { STYLE_ID, type CreateOptions } from "../shared/project";
 
 const ProviderSchema = z.object({
   provider: z.enum(GENERATORS),
@@ -91,9 +97,19 @@ export const apiRouter = (): Router => {
     res.json(await listProjects());
   });
 
+  // A saved style wins over the AI's look; the AI only picks a look for an AI plan.
   api.post("/projects", async (req, res) => {
-    const { prompt, options } = parse(CreateRequestSchema, req.body);
-    const plan = options.planMode === "ai" ? await planWithAi(prompt, options) : manualPlan(prompt, options);
+    const { prompt, options: chosen, autoLook, styleId } = parse(CreateRequestSchema, req.body);
+    const style = styleId ? await savedStyles.get(styleId) : undefined;
+    const pickLook = Boolean(autoLook) && !style && chosen.planMode === "ai";
+    const { plan, look: suggested }: PlannerReply =
+      chosen.planMode === "ai" ? await planWithAi(prompt, chosen, pickLook) : { plan: manualPlan(prompt, chosen) };
+    // The captions checkbox on the create page starts from the style but the user's last choice wins.
+    const options: CreateOptions = style
+      ? { ...optionsWithSavedStyle(chosen, style), captions: chosen.captions }
+      : pickLook && suggested
+        ? { ...chosen, look: suggested, palette: firstPaletteOf(suggested) }
+        : chosen;
     const now = new Date().toISOString();
     const id = newProjectId();
     const project = await saveProject({
@@ -105,6 +121,7 @@ export const apiRouter = (): Router => {
       options,
       plan,
       voice: {},
+      ...(style?.logo ? { logo: style.logo } : {}),
       render: { status: "idle", progress: 0, updatedAt: now },
     });
     res.status(201).json(project);
@@ -116,7 +133,7 @@ export const apiRouter = (): Router => {
 
   api.put("/projects/:id", async (req, res) => {
     const { id } = params(req);
-    const { plan, captions, palette, look, progressBar, music, sceneMap } = parse(UpdateRequestSchema, req.body);
+    const { plan, captions, palette, look, progressBar, brand, music, sceneMap } = parse(UpdateRequestSchema, req.body);
     const ids = sceneIdsOf(plan);
     const remap = (project: Project) => Object.fromEntries(
       ids.flatMap((newId) => {
@@ -142,6 +159,7 @@ export const apiRouter = (): Router => {
           palette,
           ...(look ? { look } : {}),
           ...(progressBar === undefined ? {} : { progressBar }),
+          ...(brand ? { brand } : {}),
           ...(music ? { music } : {}),
         },
       })),
@@ -199,6 +217,55 @@ export const apiRouter = (): Router => {
         return rest;
       }),
     );
+  });
+
+  // The logo is shrunk to a small PNG and kept inside project.json; see LogoSchema.
+  api.put("/projects/:id/logo", express.raw({ type: () => true, limit: LOGO_UPLOAD_LIMIT }), async (req, res) => {
+    const { id } = params(req);
+    await getProject(id);
+    const logo = await importLogo(uploadBody(req));
+    res.json(await mutate(id, (project) => ({ ...project, logo })));
+  });
+
+  api.delete("/projects/:id/logo", async (req, res) => {
+    const { id } = params(req);
+    res.json(
+      await mutate(id, (project) => {
+        const { logo: _removed, ...rest } = project;
+        return rest;
+      }),
+    );
+  });
+
+  api.post("/projects/:id/duplicate", async (req, res) => {
+    const { id } = params(req);
+    res.status(201).json(await withProjectLock(id, () => duplicateProject(id)));
+  });
+
+  api.get("/styles", async (_req, res) => {
+    res.json(await savedStyles.list());
+  });
+
+  // Saves the project's look as it is stored, so the editor saves its draft first.
+  api.post("/projects/:id/styles", async (req, res) => {
+    const { id } = params(req);
+    const { name } = parse(SaveStyleRequestSchema, req.body);
+    const style = styleFromProject(await getProject(id), newStyleId(), name, new Date().toISOString());
+    res.status(201).json(await savedStyles.add(style));
+  });
+
+  api.delete("/styles/:styleId", async (req, res) => {
+    const styleId = String(req.params.styleId);
+    if (!STYLE_ID.test(styleId)) throw new HttpError(400, "Invalid style id");
+    await savedStyles.remove(styleId);
+    res.json(await savedStyles.list());
+  });
+
+  api.post("/projects/:id/style", async (req, res) => {
+    const { id } = params(req);
+    const { styleId } = parse(ApplyStyleRequestSchema, req.body);
+    const style = await savedStyles.get(styleId);
+    res.json(await mutate(id, (project) => withSavedStyle(project, style)));
   });
 
   api.get("/projects/:id/audio/:file", (req, res) => {

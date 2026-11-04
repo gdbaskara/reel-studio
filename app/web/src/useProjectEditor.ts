@@ -3,6 +3,7 @@ import type { Generator, MusicSettings, Plan, Project } from "../../shared/proje
 import { addStep, draftOf, rebaseOrigin, removeStep, sceneMapOf, type Draft } from "../../shared/editPlan";
 import { api, type VoiceChoice } from "./api";
 import { applyStyle, styleOf, type Style } from "./style";
+import { shuffleStyle, undoShuffle, type Locks, type Shuffled } from "./shuffle";
 
 const SAVE_DELAY_MS = 700;
 
@@ -15,6 +16,8 @@ export const useProjectEditor = (projectId: string) => {
   // Labels of actions still running; several can run at once (e.g. a voice and a music upload).
   const [busy, setBusy] = useState<ReadonlySet<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
+  // The look and doodles from before the last shuffle, so it can be undone.
+  const [beforeShuffle, setBeforeShuffle] = useState<Shuffled | null>(null);
   const version = useRef(0);
   const savedVersion = useRef(0);
   const latest = useRef<{ draft: Draft | null; style: Style | null }>({ draft: null, style: null });
@@ -82,19 +85,55 @@ export const useProjectEditor = (projectId: string) => {
     setStyle(next);
   };
 
-  const run = async (label: string, action: () => Promise<Project>) => {
+  // Shuffle changes the style and the doodles together, as one edit.
+  const setLook = (next: Shuffled) => {
+    if (!draft) return;
+    version.current += 1;
+    setStyle(next.style);
+    setDraft({ ...draft, plan: next.plan });
+  };
+
+  const shuffle = (locks: Locks) => {
+    if (!draft || !style) return;
+    setBeforeShuffle({ style, plan: draft.plan });
+    setLook(shuffleStyle(style, draft.plan, locks));
+  };
+
+  const undoLastShuffle = () => {
+    if (!draft || !style || !beforeShuffle) return;
+    setLook(undoShuffle(beforeShuffle, { style, plan: draft.plan }));
+    setBeforeShuffle(null);
+  };
+
+  // Runs an action after saving the draft. A failed save keeps its own error on screen;
+  // the action would only act on stale text.
+  const act = async (label: string, action: () => Promise<void>) => {
     setError(null);
     setBusy((current) => new Set([...current, label]));
     try {
-      // A failed save keeps its own error on screen; the action would only act on stale text.
       if (!(await saveNow())) return;
-      setProject(await action());
+      await action();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy((current) => new Set([...current].filter((l) => l !== label)));
     }
   };
+
+  const run = (label: string, action: () => Promise<Project>) => act(label, async () => setProject(await action()));
+
+  // Takes the look settings the server applied and keeps other style edits (such as music) made meanwhile.
+  // It counts as a new edit, so an autosave that went out with the old look during the request is followed
+  // by one with the applied look.
+  const applySavedStyle = (styleId: string) =>
+    act("style", async () => {
+      const saved = await api.applyStyle(projectId, styleId);
+      const { look, palette, captions, progressBar, brand } = styleOf(saved.options);
+      setProject(saved);
+      version.current += 1;
+      setStyle((current) => (current ? { ...current, look, palette, captions, progressBar, brand } : styleOf(saved.options)));
+      setBeforeShuffle(null);
+    });
 
   // While a render runs, poll its progress.
   const rendering = project?.render.status === "rendering";
@@ -122,8 +161,26 @@ export const useProjectEditor = (projectId: string) => {
     dismissError: () => setError(null),
     updatePlan,
     setStyle: setStyleValue,
+    shuffle,
+    canUndoShuffle: beforeShuffle !== null,
+    undoShuffle: undoLastShuffle,
+    applySavedStyle,
+    saveStyle: (name: string, onSaved: () => Promise<void>) =>
+      act("style", async () => {
+        await api.saveStyle(projectId, name);
+        await onSaved();
+      }),
+    uploadLogo: (file: File) => run("logo", () => api.uploadLogo(projectId, file)),
+    removeLogo: () => run("logo", () => api.removeLogo(projectId)),
+    duplicate: (onDone: (copy: Project) => void) => act("duplicate", async () => onDone(await api.duplicate(projectId))),
     addStep: () => draft && project && change(addStep(draft)),
-    removeStep: (index: number) => draft && change(removeStep(draft, index)),
+    // Undo restores doodles by position, so it is dropped once a step is removed.
+    removeStep: (index: number) => {
+      if (!draft) return;
+      setBeforeShuffle(null);
+      change(removeStep(draft, index));
+    },
+    reportError: setError,
     generateVoice: (sceneId: string, provider: Generator, choice?: VoiceChoice) =>
       run(`voice:${sceneId}`, () => api.generateVoice(projectId, sceneId, provider, choice)),
     uploadVoice: (sceneId: string, file: File) => run(`voice:${sceneId}`, () => api.uploadVoice(projectId, sceneId, file)),

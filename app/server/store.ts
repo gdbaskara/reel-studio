@@ -1,20 +1,15 @@
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ProjectSchema, RenderStateSchema, type Project } from "../shared/project";
 import { DATA_DIR, HttpError, audioDir, projectDir } from "./paths";
+import { writeJson } from "./jsonFile";
 
 type RenderState = Project["render"];
 type StoredProject = Omit<Project, "render">;
 
 const IDLE: RenderState = { status: "idle", progress: 0, updatedAt: new Date(0).toISOString() };
-
-const writeJson = async (path: string, value: unknown) => {
-  const tmp = `${path}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
-  await writeFile(tmp, `${JSON.stringify(value, null, 2)}\n`);
-  await rename(tmp, path);
-};
 
 export const newProjectId = () => `p-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
 
