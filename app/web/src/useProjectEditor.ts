@@ -79,7 +79,11 @@ export const useProjectEditor = (projectId: string) => {
     setDraft(next);
   };
 
-  const updatePlan = (fn: (plan: Plan) => Plan) => draft && change({ ...draft, plan: fn(draft.plan) });
+  // Applies to the newest draft, so it is safe to call after an await.
+  const updatePlan = (fn: (plan: Plan) => Plan) => {
+    version.current += 1;
+    setDraft((current) => (current ? { ...current, plan: fn(current.plan) } : current));
+  };
   const setStyleValue = (next: Style) => {
     version.current += 1;
     setStyle(next);
@@ -170,6 +174,26 @@ export const useProjectEditor = (projectId: string) => {
         await api.saveStyle(projectId, name);
         await onSaved();
       }),
+    // The server saves the picture onto the step; the draft takes it too, so the next autosave keeps it.
+    uploadStepImage: (sceneId: string, file: File) =>
+      act(`image:${sceneId}`, async () => {
+        const saved = await api.uploadStepImage(projectId, sceneId, file);
+        const index = Number(sceneId.slice(5)) - 1;
+        const image = saved.plan.steps[index]?.image;
+        setProject(saved);
+        if (image) updatePlan((plan) => ({ ...plan, steps: plan.steps.map((s, i) => (i === index ? { ...s, image } : s)) }));
+      }),
+    removeStepImage: (sceneId: string) => {
+      const index = Number(sceneId.slice(5)) - 1;
+      updatePlan((plan) => ({
+        ...plan,
+        steps: plan.steps.map((step, i) => {
+          if (i !== index) return step;
+          const { image: _removed, ...rest } = step;
+          return rest;
+        }),
+      }));
+    },
     uploadLogo: (file: File) => run("logo", () => api.uploadLogo(projectId, file)),
     removeLogo: () => run("logo", () => api.removeLogo(projectId)),
     duplicate: (onDone: (copy: Project) => void) => act("duplicate", async () => onDone(await api.duplicate(projectId))),

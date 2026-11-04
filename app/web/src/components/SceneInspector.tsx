@@ -2,6 +2,7 @@ import type { CreateOptions, Plan } from "../../../shared/project";
 import { hintsFor } from "../hints";
 import { DoodlePicker } from "./DoodlePicker";
 import { LayoutPicker, OUTRO_CHOICES, STEP_CHOICES, TITLE_CHOICES } from "./LayoutPicker";
+import { StepPicture } from "./StepPicture";
 
 type Props = {
   readonly plan: Plan;
@@ -9,6 +10,9 @@ type Props = {
   readonly language: CreateOptions["language"];
   readonly onChange: (fn: (plan: Plan) => Plan) => void;
   readonly onRemoveStep: () => void;
+  readonly imageBusy: boolean;
+  readonly onUploadImage: (file: File) => void;
+  readonly onRemoveImage: () => void;
 };
 
 type TextProps = { label: string; value: string; max: number; hint: string; onChange: (v: string) => void };
@@ -20,7 +24,7 @@ const Text = ({ label, value, max, hint, onChange }: TextProps) => (
   </label>
 );
 
-export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep }: Props) => {
+export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep, imageBusy, onUploadImage, onRemoveImage }: Props) => {
   const hints = hintsFor(language);
   const stepIndex = sceneId.startsWith("step-") ? Number(sceneId.slice(5)) - 1 : -1;
   const step = plan.steps[stepIndex];
@@ -43,7 +47,8 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
           <Text label="Step title" value={step.title} max={60} hint={hints.stepTitle} onChange={(title) => setStep({ title })} />
           <Text label="Sticky note" value={step.note} max={120} hint={hints.stepNote} onChange={(note) => setStep({ note })} />
           <LayoutPicker choices={STEP_CHOICES} value={step.layout ?? "center"} onChange={(layout) => setStep({ layout })} />
-          {step.layout === "big-number" ? null : <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />}
+          <StepPicture image={step.image} busy={imageBusy} onUpload={onUploadImage} onRemove={onRemoveImage} />
+          {step.layout === "big-number" || step.image ? null : <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />}
         </>
       ) : null}
       {sceneId === "outro" ? (

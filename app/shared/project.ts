@@ -85,12 +85,21 @@ export const STEP_LAYOUTS = ["center", "left", "big-number"] as const;
 export const TITLE_LAYOUTS = ["center", "left", "label"] as const;
 export const OUTRO_LAYOUTS = ["center", "left", "card"] as const;
 
+// A picture shown in a step, such as a screenshot. Only files in the project's own media folder are allowed.
+export const STEP_IMAGE_SRC = /^\/api\/projects\/[a-z0-9-]{6,40}\/audio\/image-\d+\.png$/;
+export const StepImageSchema = z.object({
+  src: z.string().regex(STEP_IMAGE_SRC),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+
 export const StepSchema = z.object({
   title: text(60),
   note: text(120),
   drawing: z.enum(DRAWINGS),
   // Absent means center, the original layout.
   layout: z.enum(STEP_LAYOUTS).optional(),
+  image: StepImageSchema.optional(),
 });
 
 export const PlanSchema = z.object({
@@ -160,6 +169,7 @@ export type Brand = z.infer<typeof BrandSchema>;
 export type BrandPosition = (typeof BRAND_POSITIONS)[number];
 export type Logo = z.infer<typeof LogoSchema>;
 export type StepLayout = (typeof STEP_LAYOUTS)[number];
+export type StepImage = z.infer<typeof StepImageSchema>;
 export type TitleLayout = (typeof TITLE_LAYOUTS)[number];
 export type OutroLayout = (typeof OUTRO_LAYOUTS)[number];
 export type CreateRequest = z.infer<typeof CreateRequestSchema>;

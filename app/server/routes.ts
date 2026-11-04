@@ -17,6 +17,8 @@ import { audioInUse, pruneAudio, releasePending } from "./audioFiles";
 import { importMusic, musicFileName } from "./music";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
 import { LOGO_UPLOAD_LIMIT, importLogo } from "./logo";
+import { saveStepImage } from "./stepImage";
+import { IMAGE_UPLOAD_LIMIT } from "./images";
 import { duplicateProject } from "./duplicate";
 import { newStyleId, savedStyles } from "./styleStore";
 import { ApplyStyleRequestSchema, SaveStyleRequestSchema, optionsWithSavedStyle, styleFromProject, withSavedStyle } from "../shared/savedStyle";
@@ -28,7 +30,7 @@ const ProviderSchema = z.object({
   omnivoiceVoice: z.string().regex(OMNIVOICE_VOICE).optional(),
 });
 const MUSIC_UPLOAD_LIMIT = "60mb";
-const AUDIO_FILE = /^((title|step-[1-9]|outro)-\d+\.wav|music-\d+\.m4a)$/;
+const AUDIO_FILE = /^((title|step-[1-9]|outro)-\d+\.wav|music-\d+\.m4a|image-\d+\.png)$/;
 
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
   const result = schema.safeParse(value);
@@ -223,6 +225,25 @@ export const apiRouter = (): Router => {
         return rest;
       }),
     );
+  });
+
+  // A picture for a step, saved into the project's media folder and set on that step.
+  api.put("/projects/:id/scenes/:sceneId/image", express.raw({ type: () => true, limit: IMAGE_UPLOAD_LIMIT }), async (req, res) => {
+    const { id, sceneId } = params(req);
+    if (!sceneId.startsWith("step-")) throw new HttpError(400, "Only steps can have a picture.");
+    const index = Number(sceneId.slice(5)) - 1;
+    if (!(await getProject(id)).plan.steps[index]) throw new HttpError(404, "Step not found");
+    const image = await saveStepImage(id, uploadBody(req));
+    try {
+      res.json(
+        await mutate(id, (project) => ({
+          ...project,
+          plan: { ...project.plan, steps: project.plan.steps.map((step, i) => (i === index ? { ...step, image } : step)) },
+        })),
+      );
+    } finally {
+      releasePending(image);
+    }
   });
 
   // The logo is shrunk to a small PNG and kept inside project.json; see LogoSchema.

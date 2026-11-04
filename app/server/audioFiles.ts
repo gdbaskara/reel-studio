@@ -4,15 +4,16 @@ import { join } from "node:path";
 import type { Project } from "../shared/project";
 import { audioDir } from "./paths";
 
-// Anything stored in a project's audio folder: voice clips and the music track.
+// Anything stored in a project's media ("audio") folder: voice clips, the music track and step images.
 type AudioRef = { readonly src: string };
 
 const fileOf = (ref: AudioRef) => ref.src.split("/").pop() ?? "";
 
-// Every audio file a project still points at: its voice clips and its music track.
-export const audioInUse = (project: Pick<Project, "voice" | "music">): readonly AudioRef[] => [
+// Every media file a project still points at: its voice clips, its music track and its step images.
+export const audioInUse = (project: Pick<Project, "voice" | "music"> & { readonly plan?: Pick<Project["plan"], "steps"> }): readonly AudioRef[] => [
   ...Object.values(project.voice),
   ...(project.music ? [project.music] : []),
+  ...(project.plan?.steps.flatMap((step) => (step.image ? [step.image] : [])) ?? []),
 ];
 
 // Audio files written but not yet saved into project.json; pruning must leave them alone.

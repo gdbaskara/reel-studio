@@ -19,6 +19,7 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
 - **Emphasis** - wrap a word in on-screen text in `*asterisks*` to make it stand out in the
   look's emphasis style. The voice never reads the asterisks.
 - **Transitions and layouts** - scenes come in with a fade, slide, wipe or iris (each look has its own; change it in the editor), and every scene has its own layout: centre, left or big number for steps, centre, left or label for the title, and centre, left or card for the outro.
+- **Pictures** - add a screenshot or photo (PNG, JPG or WebP) to any step. It takes the doodle's place and shrinks to fit between the title, the note and the captions.
 - **Shuffle** - try a random look, palette, doodles and scene layouts in one click. Keep the parts you like with the lock boxes; Undo puts back the last shuffle.
 - **Brand** - add a handle such as `@yourname` and a logo (PNG, JPG or WebP) at the top of every scene.
 - **My styles** - save the current look, palette, switches and brand under a name, then apply it to any reel or pick it when creating one. Saved styles live in `saved-styles/` (not committed).
