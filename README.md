@@ -12,6 +12,12 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
   captions. Plan with AI (Claude) or start from a manual template.
 - **Scene-by-scene editor** - edit title, steps, doodles and narration; add or remove
   steps; autosave.
+- **Looks** - six complete styles: Notebook (handwritten, the original), Bold Pop, Minimal,
+  Neon Night, Kertas Koran and Soft Pastel. Each sets fonts, colors, motion, background,
+  number badges, notes and caption style, and offers 2-3 palettes. Pick one from previews of
+  your own title in the editor; hover to try it on the player. Headlines shrink to fit.
+- **Emphasis** - wrap a word in on-screen text in `*asterisks*` to make it stand out in the
+  look's emphasis style. The voice never reads the asterisks.
 - **Live preview** - play a single scene or the full reel in the browser
   (`@remotion/player`).
 - **Mixed voiceover** - per scene, generate with ElevenLabs or

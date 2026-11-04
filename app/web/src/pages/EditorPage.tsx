@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { sceneIdsOf } from "../../../shared/toReel";
-import { PALETTES } from "../../../../src/palettes";
 import { navigate } from "../App";
 import { useProjectEditor } from "../useProjectEditor";
 import { useServices } from "../useServices";
@@ -10,15 +9,23 @@ import { SceneInspector } from "../components/SceneInspector";
 import { VoicePanel } from "../components/VoicePanel";
 import { RenderBar } from "../components/RenderBar";
 import { MusicPanel } from "../components/MusicPanel";
+import { LookStrip } from "../components/LookStrip";
+import { applyStyle, type StyleOverride } from "../style";
 
 export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const editor = useProjectEditor(projectId);
   const [selected, setSelected] = useState(0);
   const [mode, setMode] = useState<"scene" | "full">("scene");
+  // A look or palette under the mouse, shown on the player but never saved.
+  const [hovered, setHovered] = useState<StyleOverride | null>(null);
   const { status, omnivoiceVoices } = useServices();
 
-  const { project, preview, look } = editor;
-  if (!project || !preview || !look) {
+  const { project, preview, style } = editor;
+  const shown = useMemo(
+    () => (preview && style && hovered ? applyStyle(preview, { ...style, ...hovered }) : preview),
+    [preview, style, hovered],
+  );
+  if (!project || !preview || !shown || !style) {
     return <main className="loading">{editor.error ?? "Loading..."}</main>;
   }
 
@@ -40,20 +47,13 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           aria-label="Reel name"
         />
         <span className="save-state">{editor.saving ? "Saving..." : "Saved"}</span>
-        <div className="swatches small">
-          {(Object.keys(PALETTES) as (keyof typeof PALETTES)[]).map((name) => (
-            <button
-              key={name}
-              className={`swatch${look.palette === name ? " selected" : ""}`}
-              style={{ background: PALETTES[name].accent }}
-              onClick={() => editor.setLook({ ...look, palette: name })}
-              aria-label={`${name} colours`}
-            />
-          ))}
-        </div>
         <label className="toggle">
-          <input type="checkbox" checked={look.captions} onChange={(e) => editor.setLook({ ...look, captions: e.target.checked })} />
+          <input type="checkbox" checked={style.captions} onChange={(e) => editor.setStyle({ ...style, captions: e.target.checked })} />
           Captions
+        </label>
+        <label className="toggle">
+          <input type="checkbox" checked={style.progressBar} onChange={(e) => editor.setStyle({ ...style, progressBar: e.target.checked })} />
+          Progress bar
         </label>
         <RenderBar project={project} busy={editor.busy.size > 0} onRender={editor.render} onReset={editor.resetRender} />
       </header>
@@ -73,11 +73,12 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             <button className={mode === "full" ? "selected" : ""} onClick={() => setMode("full")}>Whole video</button>
           </div>
           <div className="player-frame">
-            <ScenePreview project={preview} sceneIndex={index} mode={mode} />
+            <ScenePreview project={shown} sceneIndex={index} mode={mode} />
           </div>
+          <LookStrip project={preview} style={style} onPreview={setHovered} onChange={(choice) => editor.setStyle({ ...style, ...choice })} />
           <MusicPanel
             music={preview.music}
-            settings={look.music}
+            settings={style.music}
             busy={editor.busy.has("music")}
             onUpload={editor.uploadMusic}
             onRemove={editor.removeMusic}

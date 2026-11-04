@@ -1,5 +1,6 @@
 import type { Project } from "../../../shared/project";
 import { sceneIdsOf, sceneLabel } from "../../../shared/toReel";
+import { plainText } from "../../../../src/looks/emphasis";
 
 type Props = {
   readonly project: Project;
@@ -26,7 +27,7 @@ export const SceneList = ({ project, selected, onSelect, onAddStep }: Props) => 
       return (
         <button key={sceneId} className={`scene-item${i === selected ? " selected" : ""}`} onClick={() => onSelect(i)}>
           <small>{sceneLabel(sceneId)}</small>
-          <strong>{heading || "Untitled"}</strong>
+          <strong>{(heading && plainText(heading)) || "Untitled"}</strong>
           <span className={`badge ${status.tone}`}>{status.label}</span>
         </button>
       );

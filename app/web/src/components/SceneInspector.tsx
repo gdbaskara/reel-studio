@@ -1,5 +1,6 @@
-import { DRAWINGS, type CreateOptions, type Plan } from "../../../shared/project";
+import type { CreateOptions, Plan } from "../../../shared/project";
 import { hintsFor } from "../hints";
+import { DoodlePicker } from "./DoodlePicker";
 
 type Props = {
   readonly plan: Plan;
@@ -28,6 +29,7 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
   return (
     <section className="inspector">
       <h3>On screen</h3>
+      <p className="hint">{hints.emphasis}</p>
       {sceneId === "title" ? (
         <>
           <Text label="Small line" value={plan.title.lead} max={40} hint={hints.titleLead} onChange={(lead) => onChange((p) => ({ ...p, title: { ...p.title, lead } }))} />
@@ -38,16 +40,7 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
         <>
           <Text label="Step title" value={step.title} max={60} hint={hints.stepTitle} onChange={(title) => setStep({ title })} />
           <Text label="Sticky note" value={step.note} max={120} hint={hints.stepNote} onChange={(note) => setStep({ note })} />
-          <label className="field">
-            <span>Doodle</span>
-            <select value={step.drawing} onChange={(e) => setStep({ drawing: e.target.value as (typeof DRAWINGS)[number] })}>
-              {DRAWINGS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </label>
+          <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />
         </>
       ) : null}
       {sceneId === "outro" ? (

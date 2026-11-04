@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { CreateOptions } from "../../../shared/project";
 import { sceneIdsOf } from "../../../shared/toReel";
-import { PALETTES } from "../../../../src/palettes";
+import { DEFAULT_LOOK, LOOKS } from "../../../../src/looks";
+import { LOOK_IDS } from "../../../../src/looks/types";
 import { api, type ProjectSummary } from "../api";
 import { navigate } from "../App";
 import { Choice } from "../components/Choice";
@@ -9,6 +10,7 @@ import { VoicePicker } from "../components/VoicePicker";
 import { OMNIVOICE_PICKER_LABEL, omnivoiceOptions, pickedVoice } from "../voices";
 import { useServices } from "../useServices";
 import { defaultVoiceMode } from "../voiceDefault";
+import { firstPalette } from "../style";
 
 const DEFAULTS: CreateOptions = {
   language: "id",
@@ -16,7 +18,8 @@ const DEFAULTS: CreateOptions = {
   planMode: "ai",
   voiceMode: "eleven",
   captions: true,
-  palette: "green",
+  look: DEFAULT_LOOK,
+  palette: firstPalette(DEFAULT_LOOK),
 };
 
 export const CreatePage = () => {
@@ -155,21 +158,26 @@ export const CreatePage = () => {
         <div className="row">
           <fieldset className="choice">
             <legend>5. Look</legend>
-            <div className="swatches">
-              {(Object.keys(PALETTES) as (keyof typeof PALETTES)[]).map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={`swatch${options.palette === name ? " selected" : ""}`}
-                  style={{ background: PALETTES[name].paper, borderColor: PALETTES[name].accent }}
-                  onClick={() => set("palette", name)}
-                  aria-label={`${name} colours`}
-                >
-                  <i style={{ background: PALETTES[name].accent }} />
-                  <i style={{ background: PALETTES[name].highlight }} />
-                  {name}
-                </button>
-              ))}
+            <div className="look-chips">
+              {LOOK_IDS.map((id) => {
+                const { name, description, palettes } = LOOKS[id];
+                const { paper, accent, highlight } = palettes[0].colors;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`look-chip${options.look === id ? " selected" : ""}`}
+                    aria-pressed={options.look === id}
+                    title={description}
+                    onClick={() => setOptions((o) => ({ ...o, look: id, palette: firstPalette(id) }))}
+                  >
+                    {[paper, accent, highlight].map((c, i) => (
+                      <i key={i} style={{ background: c }} />
+                    ))}
+                    {name}
+                  </button>
+                );
+              })}
             </div>
           </fieldset>
           <label className="toggle">

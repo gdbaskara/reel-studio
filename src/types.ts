@@ -1,3 +1,5 @@
+import type { LookId } from "./looks/types";
+
 export type Drawing = "arrow" | "circle" | "zigzag" | "check" | "star";
 
 export type Palette = {
@@ -17,6 +19,8 @@ export type Step = {
 // One reel = one voiceover script (voiceover/<id>.txt) + this visual spec.
 export type ReelSpec = {
   readonly id: string;
+  // Absent on reels made before looks existed; they use Notebook.
+  readonly look?: LookId;
   readonly palette: Palette;
   readonly title: { readonly lead: string; readonly main: string };
   readonly steps: readonly Step[];
@@ -49,4 +53,6 @@ export type ReelProps = {
   readonly voice: Voiceover;
   readonly captions?: boolean;
   readonly music?: Music;
+  // The thin bar along the bottom edge that shows how far the reel has played.
+  readonly progressBar?: boolean;
 };
