@@ -2,11 +2,12 @@ import type { Palette } from "../types";
 import { fontFamily } from "./fonts";
 import { lookChoice } from "./index";
 import type { LookId, ResolvedLook } from "./types";
+import { tuneLook, type Tune } from "./tune";
 
-// Loads the look's fonts and pairs it with the palette the reel was given.
-export const resolveLook = (id: LookId | undefined, palette: Palette, paletteName = ""): ResolvedLook => {
+// Loads the look's fonts, applies any fine-tuning, and pairs it with the palette the reel was given.
+export const resolveLook = (id: LookId | undefined, palette: Palette, paletteName = "", tune?: Tune): ResolvedLook => {
   const { look } = lookChoice(id, paletteName);
-  const { palettes: _palettes, fonts, ...rest } = look;
+  const { palettes: _palettes, fonts, ...rest } = tuneLook(look, tune);
   return {
     ...rest,
     palette,

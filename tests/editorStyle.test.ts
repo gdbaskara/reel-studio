@@ -29,6 +29,7 @@ describe("styleOf", () => {
       progressBar: true,
       brand: { handle: "", position: "top-left" },
       transition: null,
+      tune: { textScale: 1, speed: "normal" },
       music: { volume: 0.3, duck: true },
     });
   });

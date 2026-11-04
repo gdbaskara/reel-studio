@@ -4,6 +4,7 @@ import { DEFAULT_LOOK, firstPaletteOf, lookChoice } from "../../../src/looks";
 import type { LookId } from "../../../src/looks/types";
 import type { ReelProps } from "../../../src/types";
 import type { Transition } from "../../../src/transitions";
+import { DEFAULT_TUNE, type Tune } from "../../../src/looks/tune";
 import { buildScenes } from "../../../src/timeline";
 
 // Everything about how a reel looks that the editor saves alongside the plan.
@@ -16,6 +17,7 @@ export type Style = {
   readonly brand: Brand;
   // null follows the look's own transition.
   readonly transition: Transition | null;
+  readonly tune: Tune;
   readonly music: MusicSettings;
 };
 
@@ -31,6 +33,7 @@ export const styleOf = (options: CreateOptions): Style => ({
   progressBar: options.progressBar ?? true,
   brand: options.brand ?? NO_BRAND,
   transition: options.transition ?? null,
+  tune: options.tune ?? DEFAULT_TUNE,
   music: musicSettings(options),
 });
 

@@ -6,7 +6,7 @@ import { canShuffle, shuffleStyle, undoShuffle, type Locks } from "../app/web/sr
 import type { Style } from "../app/web/src/style";
 
 const NONE: Locks = { look: false, palette: false, doodles: false, layouts: false };
-const style: Style = { look: "notebook", palette: "green", captions: true, progressBar: true, brand: { handle: "", position: "top-left" }, transition: null, music: { volume: 0.3, duck: true } };
+const style: Style = { look: "notebook", palette: "green", captions: true, progressBar: true, brand: { handle: "", position: "top-left" }, transition: null, tune: { textScale: 1, speed: "normal" }, music: { volume: 0.3, duck: true } };
 const plan = manualPlan("x", { language: "id", stepCount: 4, planMode: "manual", voiceMode: "mixed", captions: true, palette: "green" });
 
 // Cycles through fixed values so every pick is predictable.

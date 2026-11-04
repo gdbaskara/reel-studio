@@ -1,6 +1,7 @@
 import { lookChoice } from "../../src/looks";
 import type { BrandMark, ReelProps, ReelSpec } from "../../src/types";
 import { DEFAULT_BRAND_POSITION, musicSettings, type Project } from "./project";
+import { isDefaultTune } from "../../src/looks/tune";
 
 export const sceneIdsOf = (plan: Project["plan"]): readonly string[] => [
   "title",
@@ -28,6 +29,7 @@ export const toReelProps = (project: Project, audioBase = ""): ReelProps => {
     look: look.id,
     palette: look.palette,
     ...(project.options.transition ? { transition: project.options.transition } : {}),
+    ...(project.options.tune && !isDefaultTune(project.options.tune) ? { tune: project.options.tune } : {}),
     title: project.plan.title,
     steps: project.plan.steps.map((step) => (step.image ? { ...step, image: { ...step.image, src: `${audioBase}${step.image.src}` } } : step)),
     outro: project.plan.outro,
