@@ -27,6 +27,7 @@ export const toReelProps = (project: Project, audioBase = ""): ReelProps => {
     id: project.id,
     look: look.id,
     palette: look.palette,
+    ...(project.options.transition ? { transition: project.options.transition } : {}),
     title: project.plan.title,
     steps: project.plan.steps,
     outro: project.plan.outro,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LOOK_IDS } from "../../src/looks/types";
+import { TRANSITIONS } from "../../src/transitions";
 
 export const DRAWINGS = ["arrow", "circle", "zigzag", "check", "star"] as const;
 // Palette names belong to a look (e.g. Notebook has warm, green and blue); unknown names fall back to the look's first.
@@ -66,6 +67,8 @@ export const CreateOptionsSchema = z.object({
   look: z.enum(LOOK_IDS).optional(),
   progressBar: z.boolean().optional(),
   brand: BrandSchema.optional(),
+  // Absent follows the look's own transition.
+  transition: z.enum(TRANSITIONS).optional(),
   // Set once music settings are first saved; older projects have none.
   music: MusicSettingsSchema.optional(),
 });
@@ -78,10 +81,14 @@ export const CreateRequestSchema = z.object({
   styleId: z.string().regex(STYLE_ID).optional(),
 });
 
+export const STEP_LAYOUTS = ["center", "left", "big-number"] as const;
+
 export const StepSchema = z.object({
   title: text(60),
   note: text(120),
   drawing: z.enum(DRAWINGS),
+  // Absent means center, the original layout.
+  layout: z.enum(STEP_LAYOUTS).optional(),
 });
 
 export const PlanSchema = z.object({
@@ -137,6 +144,8 @@ export const UpdateRequestSchema = z.object({
   progressBar: z.boolean().optional(),
   // Absent keeps the saved brand; the editor always sends it once it has one.
   brand: BrandSchema.optional(),
+  // null goes back to the look's own transition.
+  transition: z.enum(TRANSITIONS).nullable().optional(),
   music: MusicSettingsSchema.optional(),
   sceneMap: z.record(z.string().regex(SCENE_ID), z.string().regex(SCENE_ID)).optional(),
 });
@@ -147,6 +156,7 @@ export type Music = z.infer<typeof MusicSchema>;
 export type Brand = z.infer<typeof BrandSchema>;
 export type BrandPosition = (typeof BRAND_POSITIONS)[number];
 export type Logo = z.infer<typeof LogoSchema>;
+export type StepLayout = (typeof STEP_LAYOUTS)[number];
 export type CreateRequest = z.infer<typeof CreateRequestSchema>;
 export type Plan = z.infer<typeof PlanSchema>;
 export type Clip = z.infer<typeof ClipSchema>;

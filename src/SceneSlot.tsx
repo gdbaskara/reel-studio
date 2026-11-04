@@ -1,4 +1,5 @@
-import { Audio, Sequence, staticFile } from "remotion";
+import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { enterProgress, enterStyle, transitionOf } from "./transitions";
 import { VOICE_DELAY, type Scene } from "./timeline";
 import type { ReelSpec } from "./types";
 import { TitleScene } from "./scenes/TitleScene";
@@ -17,12 +18,30 @@ const SceneBody = ({ spec, scene }: { readonly spec: ReelSpec; readonly scene: S
   }
 };
 
-type Props = { readonly spec: ReelSpec; readonly scene: Scene; readonly captions: boolean };
+type Props = {
+  readonly spec: ReelSpec;
+  readonly scene: Scene;
+  readonly captions: boolean;
+  // False for the first scene of a reel, which is already on screen when it starts.
+  readonly enters: boolean;
+};
+
+// The scene's visuals coming in with the reel's transition. Fade adds no wrapper, so those reels render as before.
+const Entering = ({ spec, scene, enters }: Omit<Props, "captions">) => {
+  const frame = useCurrentFrame();
+  const kind = transitionOf(spec.look, spec.transition);
+  if (kind === "fade" || !enters) return <SceneBody spec={spec} scene={scene} />;
+  return (
+    <AbsoluteFill style={enterStyle(kind, enterProgress(frame, true))}>
+      <SceneBody spec={spec} scene={scene} />
+    </AbsoluteFill>
+  );
+};
 
 // One scene with its visuals, captions and voice clip, starting at frame 0.
-export const SceneSlot = ({ spec, scene, captions }: Props) => (
+export const SceneSlot = ({ spec, scene, captions, enters }: Props) => (
   <>
-    <SceneBody spec={spec} scene={scene} />
+    <Entering spec={spec} scene={scene} enters={enters} />
     {scene.clip && captions ? <Captions words={scene.clip.words} delayFrames={VOICE_DELAY} /> : null}
     {scene.clip ? (
       <Sequence from={VOICE_DELAY}>

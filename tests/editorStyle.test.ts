@@ -28,6 +28,7 @@ describe("styleOf", () => {
       captions: true,
       progressBar: true,
       brand: { handle: "", position: "top-left" },
+      transition: null,
       music: { volume: 0.3, duck: true },
     });
   });

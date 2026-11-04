@@ -33,9 +33,9 @@ export const Reel = ({ spec, voice, captions = true, music, progressBar = true, 
   return (
     <Canvas spec={spec} brand={brand}>
       <Series>
-        {scenes.map((scene) => (
+        {scenes.map((scene, i) => (
           <Series.Sequence key={scene.voiceId} durationInFrames={scene.frames}>
-            <SceneSlot spec={spec} scene={scene} captions={captions} />
+            <SceneSlot spec={spec} scene={scene} captions={captions} enters={i > 0} />
           </Series.Sequence>
         ))}
       </Series>
@@ -53,7 +53,7 @@ export const SingleScene = ({ spec, voice, captions = true, music, brand, sceneI
   const scene = scenes[sceneIndex];
   return (
     <Canvas spec={spec} brand={brand}>
-      {scene ? <SceneSlot spec={spec} scene={scene} captions={captions} /> : null}
+      {scene ? <SceneSlot spec={spec} scene={scene} captions={captions} enters={sceneIndex > 0} /> : null}
       {scene && music ? <BackgroundMusic music={music} scenes={scenes} offset={sceneStart(scenes, sceneIndex)} /> : null}
       {scene && brand ? <BrandMark brand={brand} offset={sceneStart(scenes, sceneIndex)} /> : null}
     </Canvas>

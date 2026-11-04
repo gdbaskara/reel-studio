@@ -46,4 +46,5 @@ export const BOLD_POP: Look = {
   note: "pill",
   captions: "outline",
   emphasis: "marker",
+  transition: "slide",
 };

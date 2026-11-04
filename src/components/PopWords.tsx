@@ -10,6 +10,7 @@ type Props = {
   readonly delay?: number;
   readonly fontSize: number;
   readonly color?: string;
+  readonly align?: "center" | "left";
 };
 
 // How an *emphasized* word stands out, per the look's emphasis style.
@@ -62,7 +63,7 @@ const useFit = (text: string, fontSize: number, font: string, weight: number) =>
 };
 
 // Each word springs up and in, one after another, like it is being said.
-export const PopWords = ({ text, delay = 0, fontSize: fullSize, color }: Props) => {
+export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "center" }: Props) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const look = useLook();
@@ -76,7 +77,7 @@ export const PopWords = ({ text, delay = 0, fontSize: fullSize, color }: Props) 
       style={{
         display: "flex",
         flexWrap: "wrap",
-        justifyContent: "center",
+        justifyContent: align === "left" ? "flex-start" : "center",
         fontSize,
         color,
         lineHeight: type.lineHeight,

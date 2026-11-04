@@ -3,6 +3,7 @@ import { toReelProps } from "../../shared/toReel";
 import { DEFAULT_LOOK, firstPaletteOf, lookChoice } from "../../../src/looks";
 import type { LookId } from "../../../src/looks/types";
 import type { ReelProps } from "../../../src/types";
+import type { Transition } from "../../../src/transitions";
 import { buildScenes } from "../../../src/timeline";
 
 // Everything about how a reel looks that the editor saves alongside the plan.
@@ -13,6 +14,8 @@ export type Style = {
   readonly captions: boolean;
   readonly progressBar: boolean;
   readonly brand: Brand;
+  // null follows the look's own transition.
+  readonly transition: Transition | null;
   readonly music: MusicSettings;
 };
 
@@ -27,6 +30,7 @@ export const styleOf = (options: CreateOptions): Style => ({
   captions: options.captions,
   progressBar: options.progressBar ?? true,
   brand: options.brand ?? NO_BRAND,
+  transition: options.transition ?? null,
   music: musicSettings(options),
 });
 
@@ -38,7 +42,12 @@ export const withLook = (style: Style, look: LookId): Style => ({ ...style, look
 // The palette the reel actually uses, after unknown names fall back to the look's first.
 export const activePalette = (style: Pick<Style, "look" | "palette">): string => lookChoice(style.look, style.palette).paletteName;
 
-export const applyStyle = (project: Project, style: Style): Project => ({ ...project, options: { ...project.options, ...style } });
+// The project as the editor shows it with this style, before it is saved.
+export const applyStyle = (project: Project, style: Style): Project => {
+  const { transition, ...rest } = style;
+  const { transition: _saved, ...options } = project.options;
+  return { ...project, options: { ...options, ...rest, ...(transition ? { transition } : {}) } };
+};
 
 // A frame of the title scene where its words have animated in.
 export const TILE_FRAME = 45;

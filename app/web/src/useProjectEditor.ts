@@ -128,10 +128,10 @@ export const useProjectEditor = (projectId: string) => {
   const applySavedStyle = (styleId: string) =>
     act("style", async () => {
       const saved = await api.applyStyle(projectId, styleId);
-      const { look, palette, captions, progressBar, brand } = styleOf(saved.options);
+      const { look, palette, captions, progressBar, brand, transition } = styleOf(saved.options);
       setProject(saved);
       version.current += 1;
-      setStyle((current) => (current ? { ...current, look, palette, captions, progressBar, brand } : styleOf(saved.options)));
+      setStyle((current) => (current ? { ...current, look, palette, captions, progressBar, brand, transition } : styleOf(saved.options)));
       setBeforeShuffle(null);
     });
 

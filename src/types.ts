@@ -10,10 +10,16 @@ export type Palette = {
   readonly onAccent: string;
 };
 
+// center: the original stacked layout. left: badge, title and note aligned left.
+// big-number: a large step number leads, with the title under it.
+export type StepLayout = "center" | "left" | "big-number";
+
 export type Step = {
   readonly title: string;
   readonly note: string;
   readonly drawing: Drawing;
+  // Absent means center.
+  readonly layout?: StepLayout;
 };
 
 // One reel = one voiceover script (voiceover/<id>.txt) + this visual spec.
@@ -21,6 +27,8 @@ export type ReelSpec = {
   readonly id: string;
   // Absent on reels made before looks existed; they use Notebook.
   readonly look?: LookId;
+  // Absent uses the look's own transition.
+  readonly transition?: "fade" | "slide" | "wipe" | "iris";
   readonly palette: Palette;
   readonly title: { readonly lead: string; readonly main: string };
   readonly steps: readonly Step[];
