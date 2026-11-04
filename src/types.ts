@@ -24,6 +24,8 @@ export type Step = {
   readonly drawing: Drawing;
   // Absent means center.
   readonly layout?: StepLayout;
+  // A picture such as a screenshot; src is an image URL.
+  readonly image?: { readonly src: string; readonly width: number; readonly height: number };
 };
 
 // One reel = one voiceover script (voiceover/<id>.txt) + this visual spec.

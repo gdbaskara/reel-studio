@@ -29,7 +29,7 @@ export const toReelProps = (project: Project, audioBase = ""): ReelProps => {
     palette: look.palette,
     ...(project.options.transition ? { transition: project.options.transition } : {}),
     title: project.plan.title,
-    steps: project.plan.steps,
+    steps: project.plan.steps.map((step) => (step.image ? { ...step, image: { ...step.image, src: `${audioBase}${step.image.src}` } } : step)),
     outro: project.plan.outro,
   };
   const voice = Object.fromEntries(

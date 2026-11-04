@@ -54,6 +54,12 @@ export const api = {
       headers: { "Content-Type": file.type || "application/octet-stream" },
       body: file,
     }),
+  uploadStepImage: (id: string, sceneId: string, file: File) =>
+    request<Project>(`/projects/${id}/scenes/${sceneId}/image`, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    }),
   removeLogo: (id: string) => request<Project>(`/projects/${id}/logo`, { method: "DELETE" }),
   duplicate: (id: string) => request<Project>(`/projects/${id}/duplicate`, { method: "POST" }),
   styles: () => request<SavedStyle[]>("/styles"),

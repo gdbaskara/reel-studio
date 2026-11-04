@@ -120,6 +120,9 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             sceneId={sceneId}
             language={preview.options.language}
             onChange={editor.updatePlan}
+            imageBusy={editor.busy.has(`image:${sceneId}`)}
+            onUploadImage={(file) => editor.uploadStepImage(sceneId, file)}
+            onRemoveImage={() => editor.removeStepImage(sceneId)}
             onRemoveStep={() => {
               editor.removeStep(index - 1);
               setSelected(Math.max(0, index - 1));
