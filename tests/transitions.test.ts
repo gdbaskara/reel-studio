@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { LOOKS } from "../src/looks";
 import { LOOK_IDS } from "../src/looks/types";
 import { ENTER_FRAMES, TRANSITIONS, enterProgress, enterStyle, transitionOf } from "../src/transitions";
-import { CreateOptionsSchema, StepSchema, UpdateRequestSchema, type Project } from "../app/shared/project";
+import { CreateOptionsSchema, PlanSchema, StepSchema, UpdateRequestSchema, type Project } from "../app/shared/project";
 import { manualPlan } from "../app/server/planner";
 import { toReelProps } from "../app/shared/toReel";
 
@@ -46,6 +46,14 @@ describe("transition and layout options", () => {
     expect(StepSchema.safeParse({ ...step, layout: "left" }).success).toBe(true);
     expect(StepSchema.safeParse({ ...step, layout: "big-number" }).success).toBe(true);
     expect(StepSchema.safeParse({ ...step, layout: "diagonal" }).success).toBe(false);
+  });
+
+  it("the title and outro take an optional layout of their own", () => {
+    const plan = manualPlan("x", options);
+    expect(PlanSchema.safeParse({ ...plan, title: { ...plan.title, layout: "label" }, outro: { ...plan.outro, layout: "card" } }).success).toBe(true);
+    expect(PlanSchema.safeParse({ ...plan, title: { ...plan.title, layout: "left" }, outro: { ...plan.outro, layout: "left" } }).success).toBe(true);
+    expect(PlanSchema.safeParse({ ...plan, title: { ...plan.title, layout: "card" } }).success).toBe(false);
+    expect(PlanSchema.safeParse({ ...plan, outro: { ...plan.outro, layout: "label" } }).success).toBe(false);
   });
 
   it("projects take an optional transition and pass it to the reel", () => {

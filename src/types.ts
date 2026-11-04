@@ -13,6 +13,10 @@ export type Palette = {
 // center: the original stacked layout. left: badge, title and note aligned left.
 // big-number: a large step number leads, with the title under it.
 export type StepLayout = "center" | "left" | "big-number";
+// label: the small line becomes a coloured tag above the big line.
+export type TitleLayout = "center" | "left" | "label";
+// card: both lines sit on an accent-coloured card.
+export type OutroLayout = "center" | "left" | "card";
 
 export type Step = {
   readonly title: string;
@@ -30,9 +34,9 @@ export type ReelSpec = {
   // Absent uses the look's own transition.
   readonly transition?: "fade" | "slide" | "wipe" | "iris";
   readonly palette: Palette;
-  readonly title: { readonly lead: string; readonly main: string };
+  readonly title: { readonly lead: string; readonly main: string; readonly layout?: TitleLayout };
   readonly steps: readonly Step[];
-  readonly outro: { readonly main: string; readonly sub: string };
+  readonly outro: { readonly main: string; readonly sub: string; readonly layout?: OutroLayout };
 };
 
 export type CaptionWord = { readonly text: string; readonly start: number; readonly end: number };

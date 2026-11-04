@@ -11,11 +11,17 @@ type Props = {
   readonly fontSize: number;
   readonly color?: string;
   readonly align?: "center" | "left";
+  // Room the words have before they shrink to fit.
+  readonly width?: number;
 };
 
 // How an *emphasized* word stands out, per the look's emphasis style.
 export const strongStyle = (look: ResolvedLook, color: string | undefined, fontSize: number): CSSProperties => {
   const { palette } = look;
+  // Text on an accent card: the accent itself would vanish, so stand out with an underline in the text colour.
+  if (color === palette.onAccent) {
+    return { textDecoration: "underline", textDecorationColor: color, textDecorationThickness: Math.max(4, fontSize * 0.07), textUnderlineOffset: fontSize * 0.12 };
+  }
   switch (look.emphasis) {
     case "marker":
       return { backgroundColor: palette.highlight, color: palette.ink, padding: `0 ${fontSize * 0.08}px`, borderRadius: fontSize * 0.06 };
@@ -37,7 +43,7 @@ const fontReady = async (spec: string, text: string, triesLeft = 60): Promise<vo
 
 // Shrinks the text when its widest word would not fit, once the look's font has loaded.
 // Rendering waits for the measurement, so every frame uses the fitted size.
-const useFit = (text: string, fontSize: number, font: string, weight: number) => {
+const useFit = (text: string, fontSize: number, font: string, weight: number, width: number) => {
   const ref = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(1);
   const current = useRef(fit);
@@ -54,22 +60,22 @@ const useFit = (text: string, fontSize: number, font: string, weight: number) =>
       const spans = [...(ref.current?.children ?? [])] as HTMLElement[];
       // Measured at the size currently drawn, so divide by it to get the full-size width.
       const widest = Math.max(0, ...spans.map((el) => el.offsetWidth + parseFloat(getComputedStyle(el).marginRight || "0"))) / current.current;
-      setFit(fitScale(widest, TEXT_WIDTH));
+      setFit(fitScale(widest, width));
       finish();
     }, finish);
     return finish;
-  }, [text, fontSize, font, weight]);
+  }, [text, fontSize, font, weight, width]);
   return { ref, size: fontSize * fit };
 };
 
 // Each word springs up and in, one after another, like it is being said.
-export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "center" }: Props) => {
+export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "center", width = TEXT_WIDTH }: Props) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const look = useLook();
   const { motion, type } = look;
   const words = parseEmphasis(text);
-  const { ref, size: fontSize } = useFit(text, fullSize, look.fonts.display, look.fonts.displayWeight);
+  const { ref, size: fontSize } = useFit(text, fullSize, look.fonts.display, look.fonts.displayWeight, width);
 
   return (
     <div
