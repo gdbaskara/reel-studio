@@ -114,6 +114,11 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .undo-redo { display: inline-flex; gap: 4px; }
 .undo-redo button { padding: 4px 10px; font-size: 16px; line-height: 1; }
 .tune-panel { display: grid; gap: 6px; }
+.restyle { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; display: grid; gap: 8px; padding: 10px; border: 1px dashed var(--line); border-radius: 12px; }
+.restyle-ask input { flex: 1; width: auto; }
+.proposal { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); }
+.proposal span { flex: 1; min-width: 160px; font-size: 13px; }
+.proposal .primary { padding: 6px 14px; }
 .look-tools { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; display: grid; gap: 8px; }
 .shuffle-bar, .saved-styles { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .shuffle-bar .shuffle { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }

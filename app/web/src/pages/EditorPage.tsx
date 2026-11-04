@@ -13,6 +13,9 @@ import { LookStrip } from "../components/LookStrip";
 import { ShuffleBar } from "../components/ShuffleBar";
 import { TransitionChips } from "../components/TransitionChips";
 import { TunePanel } from "../components/TunePanel";
+import { RestylePanel } from "../components/RestylePanel";
+import { applyProposal } from "../restyle";
+import type { Proposal } from "../../../shared/restyle";
 import { useUndoKeys } from "../useUndoKeys";
 import { SavedStylesBar } from "../components/SavedStylesBar";
 import { BrandPanel } from "../components/BrandPanel";
@@ -25,15 +28,20 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const [mode, setMode] = useState<"scene" | "full">("scene");
   // A look or palette under the mouse, shown on the player but never saved.
   const [hovered, setHovered] = useState<StyleOverride | null>(null);
+  // A suggested restyle shown on the player until it is applied or dropped.
+  const [proposal, setProposal] = useState<Proposal | null>(null);
   const { status, omnivoiceVoices } = useServices();
   const saved = useSavedStyles();
   useUndoKeys(editor.undo, editor.redo);
 
   const { project, preview, style } = editor;
-  const shown = useMemo(
-    () => (preview && style && hovered ? applyStyle(preview, { ...style, ...hovered }) : preview),
-    [preview, style, hovered],
-  );
+  const shown = useMemo(() => {
+    if (!preview || !style) return preview;
+    if (hovered) return applyStyle(preview, { ...style, ...hovered });
+    if (!proposal) return preview;
+    const next = applyProposal(style, preview.plan, proposal);
+    return applyStyle({ ...preview, plan: next.plan }, next.style);
+  }, [preview, style, hovered, proposal]);
   if (!project || !preview || !shown || !style) {
     return <main className="loading">{editor.error ?? "Loading..."}</main>;
   }
@@ -96,6 +104,17 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             <ScenePreview project={shown} sceneIndex={index} mode={mode} />
           </div>
           <LookStrip project={preview} style={style} onPreview={setHovered} onChange={(choice) => editor.setStyle({ ...style, ...choice })} />
+          <RestylePanel
+            style={style}
+            proposal={proposal}
+            busy={editor.busy.has("restyle")}
+            onPreview={setProposal}
+            onAsk={editor.suggestRestyle}
+            onApply={(p) => {
+              editor.applyProposal(p);
+              setProposal(null);
+            }}
+          />
           <div className="look-tools">
             <TransitionChips style={style} onChange={(transition) => editor.setStyle({ ...style, transition })} />
             <TunePanel tune={style.tune} onChange={(tune) => editor.setStyle({ ...style, tune })} />

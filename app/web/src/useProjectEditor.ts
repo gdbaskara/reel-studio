@@ -4,6 +4,8 @@ import { addStep, draftOf, rebaseOrigin, removeStep, sceneMapOf, type Draft } fr
 import { api, type VoiceChoice } from "./api";
 import { applyStyle, styleOf, type Style } from "./style";
 import { shuffleStyle, undoShuffle, type Locks, type Shuffled } from "./shuffle";
+import { applyProposal } from "./restyle";
+import type { Proposal } from "../../shared/restyle";
 import { EMPTY_HISTORY, rebaseHistory, record, redo, restore, undo, type History } from "./history";
 
 const SAVE_DELAY_MS = 700;
@@ -196,6 +198,25 @@ export const useProjectEditor = (projectId: string) => {
     dismissError: () => setError(null),
     updatePlan,
     setStyle: setStyleValue,
+    // A previewed style change becomes one edit, which Undo can take back.
+    applyProposal: (proposal: Proposal) => {
+      if (!draft || !style) return;
+      const next = applyProposal(style, draft.plan, proposal);
+      setLook(next);
+      setBeforeShuffle(null);
+    },
+    suggestRestyle: async (text: string): Promise<Proposal | null> => {
+      setError(null);
+      setBusy((current) => new Set([...current, "restyle"]));
+      try {
+        return await api.restyle(projectId, text);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        return null;
+      } finally {
+        setBusy((current) => new Set([...current].filter((l) => l !== "restyle")));
+      }
+    },
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
     undo: () => travel(undo),

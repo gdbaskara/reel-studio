@@ -18,6 +18,9 @@ import { importMusic, musicFileName } from "./music";
 import { HttpError, ROOT, audioDir, checkProjectId, checkSceneId } from "./paths";
 import { LOGO_UPLOAD_LIMIT, importLogo } from "./logo";
 import { saveStepImage } from "./stepImage";
+import { suggestRestyle } from "./restyle";
+import { RestyleRequestSchema } from "../shared/restyle";
+import { lookChoice } from "../../src/looks";
 import { IMAGE_UPLOAD_LIMIT } from "./images";
 import { duplicateProject } from "./duplicate";
 import { newStyleId, savedStyles } from "./styleStore";
@@ -268,6 +271,19 @@ export const apiRouter = (): Router => {
   api.post("/projects/:id/duplicate", async (req, res) => {
     const { id } = params(req);
     res.status(201).json(await withProjectLock(id, () => duplicateProject(id)));
+  });
+
+  // Asks the AI for a style change. Nothing is saved: the editor previews it and applies it as an edit.
+  api.post("/projects/:id/restyle", async (req, res) => {
+    const { id } = params(req);
+    const { request } = parse(RestyleRequestSchema, req.body);
+    const { options } = await getProject(id);
+    const { id: look, paletteName } = lookChoice(options.look, options.palette);
+    try {
+      res.json(await suggestRestyle(request, { look, palette: paletteName }));
+    } catch (error) {
+      throw new HttpError(502, error instanceof Error ? error.message : "The AI could not suggest a style.");
+    }
   });
 
   api.get("/styles", async (_req, res) => {

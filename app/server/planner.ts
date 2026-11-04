@@ -46,7 +46,7 @@ Return ONLY a JSON object, no prose, no code fences, matching:
 }
 Keep every narration line under 25 words. Do not invent facts you are unsure about; stay generic instead.`;
 
-const extractJson = (raw: string): unknown => {
+export const extractJson = (raw: string): unknown => {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("Planner returned no JSON");
@@ -87,14 +87,16 @@ export const parsePlannerReply = (raw: string): PlannerReply => {
   return look.success ? { plan: parsed.data, look: look.data } : { plan: parsed.data };
 };
 
-export const planWithAi = async (prompt: string, options: CreateOptions, pickLook = false): Promise<PlannerReply> => {
+// Sends a prompt to Claude: the Anthropic API when a key is set, else the local Claude Code login.
+export const askClaude = async (prompt: string): Promise<string> => {
   const env = loadEnv(ROOT);
-  const text = plannerPrompt(prompt, options, pickLook);
-  const raw = env.ANTHROPIC_API_KEY
-    ? await viaAnthropicApi(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL || "claude-sonnet-5-5", text)
-    : await viaClaudeCli(text);
-  return parsePlannerReply(raw);
+  return env.ANTHROPIC_API_KEY
+    ? viaAnthropicApi(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL || "claude-sonnet-5-5", prompt)
+    : viaClaudeCli(prompt);
 };
+
+export const planWithAi = async (prompt: string, options: CreateOptions, pickLook = false): Promise<PlannerReply> =>
+  parsePlannerReply(await askClaude(plannerPrompt(prompt, options, pickLook)));
 
 // Blank plan for "write it myself": every scene starts empty and the editor shows hints instead.
 export const manualPlan = (prompt: string, options: CreateOptions): Plan => {
