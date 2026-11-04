@@ -82,6 +82,8 @@ export const CreateRequestSchema = z.object({
 });
 
 export const STEP_LAYOUTS = ["center", "left", "big-number"] as const;
+export const TITLE_LAYOUTS = ["center", "left", "label"] as const;
+export const OUTRO_LAYOUTS = ["center", "left", "card"] as const;
 
 export const StepSchema = z.object({
   title: text(60),
@@ -93,9 +95,10 @@ export const StepSchema = z.object({
 
 export const PlanSchema = z.object({
   name: text(80).min(1),
-  title: z.object({ lead: text(40), main: text(40) }),
+  // Layouts are absent on older plans, which use center.
+  title: z.object({ lead: text(40), main: text(40), layout: z.enum(TITLE_LAYOUTS).optional() }),
   steps: z.array(StepSchema).min(1).max(7),
-  outro: z.object({ main: text(40), sub: text(60) }),
+  outro: z.object({ main: text(40), sub: text(60), layout: z.enum(OUTRO_LAYOUTS).optional() }),
   narration: z.record(z.string().regex(SCENE_ID), text(600)),
 });
 
@@ -157,6 +160,8 @@ export type Brand = z.infer<typeof BrandSchema>;
 export type BrandPosition = (typeof BRAND_POSITIONS)[number];
 export type Logo = z.infer<typeof LogoSchema>;
 export type StepLayout = (typeof STEP_LAYOUTS)[number];
+export type TitleLayout = (typeof TITLE_LAYOUTS)[number];
+export type OutroLayout = (typeof OUTRO_LAYOUTS)[number];
 export type CreateRequest = z.infer<typeof CreateRequestSchema>;
 export type Plan = z.infer<typeof PlanSchema>;
 export type Clip = z.infer<typeof ClipSchema>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LOOKS } from "../src/looks";
-import { DRAWINGS, STEP_LAYOUTS } from "../app/shared/project";
+import { DRAWINGS, OUTRO_LAYOUTS, STEP_LAYOUTS, TITLE_LAYOUTS } from "../app/shared/project";
 import { manualPlan } from "../app/server/planner";
 import { canShuffle, shuffleStyle, undoShuffle, type Locks } from "../app/web/src/shuffle";
 import type { Style } from "../app/web/src/style";
@@ -64,6 +64,17 @@ describe("shuffled layouts", () => {
     });
     expect(next.plan.steps.map((s) => s.drawing)).toEqual(plan.steps.map((s) => s.drawing));
   });
+
+  it("also gives the title and outro a different layout, keeping their text", () => {
+    const next = shuffleStyle(style, plan, { ...NONE, doodles: true }, seq(0.7, 0.1));
+    expect(TITLE_LAYOUTS).toContain(next.plan.title.layout);
+    expect(OUTRO_LAYOUTS).toContain(next.plan.outro.layout);
+    expect(next.plan.title.layout).not.toBe("center");
+    expect(next.plan.outro.layout).not.toBe("center");
+    expect([next.plan.title.lead, next.plan.title.main, next.plan.outro.main]).toEqual([plan.title.lead, plan.title.main, plan.outro.main]);
+    const locked = shuffleStyle(style, plan, { ...NONE, layouts: true }, seq(0.7));
+    expect([locked.plan.title.layout, locked.plan.outro.layout]).toEqual([plan.title.layout, plan.outro.layout]);
+  });
 });
 
 describe("canShuffle", () => {
@@ -83,6 +94,7 @@ describe("undoShuffle", () => {
     expect(back.style).toEqual({ ...style, captions: false });
     expect(back.plan.steps.map((s) => s.drawing)).toEqual(plan.steps.map((s) => s.drawing));
     expect(back.plan.steps.map((s) => s.layout)).toEqual(plan.steps.map((s) => s.layout));
+    expect([back.plan.title.layout, back.plan.outro.layout]).toEqual([plan.title.layout, plan.outro.layout]);
     expect(back.plan.steps[0].title).toBe("Baru");
   });
 

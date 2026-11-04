@@ -1,4 +1,4 @@
-import { DRAWINGS, STEP_LAYOUTS, type Plan } from "../../shared/project";
+import { DRAWINGS, OUTRO_LAYOUTS, STEP_LAYOUTS, TITLE_LAYOUTS, type Plan } from "../../shared/project";
 import { LOOKS } from "../../../src/looks";
 import { LOOK_IDS } from "../../../src/looks/types";
 import { activePalette, type Style } from "./style";
@@ -34,12 +34,18 @@ const shuffledLook = (style: Style, locks: Locks, random: Random): Style => {
   return { ...style, palette: pick(paletteNames(style), random, activePalette(style)) };
 };
 
-// New doodles and/or layouts for every step; the plan itself is returned when both are locked.
+// New doodles and/or layouts for every scene; the plan itself is returned when both are locked.
 const shuffledSteps = (plan: Plan, locks: Locks, random: Random): Plan =>
   locks.doodles && locks.layouts
     ? plan
     : {
         ...plan,
+        ...(locks.layouts
+          ? {}
+          : {
+              title: { ...plan.title, layout: pick(TITLE_LAYOUTS, random, plan.title.layout ?? "center") },
+              outro: { ...plan.outro, layout: pick(OUTRO_LAYOUTS, random, plan.outro.layout ?? "center") },
+            }),
         steps: plan.steps.map((step) => ({
           ...step,
           ...(locks.doodles ? {} : { drawing: pick(DRAWINGS, random, step.drawing) }),
@@ -54,17 +60,23 @@ export const shuffleStyle = (style: Style, plan: Plan, locks: Locks, random: Ran
   plan: shuffledSteps(plan, locks, random),
 });
 
+// The part with the given layout, or with none (center) when it is absent.
+const withLayout = <T extends { readonly layout?: string }>(part: T, layout: T["layout"]): T => {
+  const { layout: _old, ...rest } = part;
+  return (layout ? { ...rest, layout } : rest) as T;
+};
+
 // Puts back the look, palette, doodles and layouts from before a shuffle, keeping every other edit made since.
 // Steps added after the shuffle keep theirs.
 export const undoShuffle = (before: Shuffled, current: Shuffled): Shuffled => ({
   style: { ...current.style, look: before.style.look, palette: before.style.palette },
   plan: {
     ...current.plan,
+    title: withLayout(current.plan.title, before.plan.title.layout),
+    outro: withLayout(current.plan.outro, before.plan.outro.layout),
     steps: current.plan.steps.map((step, i) => {
       const earlier = before.plan.steps[i];
-      if (!earlier) return step;
-      const { layout: _layout, ...rest } = step;
-      return { ...rest, drawing: earlier.drawing, ...(earlier.layout ? { layout: earlier.layout } : {}) };
+      return earlier ? { ...withLayout(step, earlier.layout), drawing: earlier.drawing } : step;
     }),
   },
 });

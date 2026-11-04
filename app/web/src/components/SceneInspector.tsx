@@ -1,7 +1,7 @@
 import type { CreateOptions, Plan } from "../../../shared/project";
 import { hintsFor } from "../hints";
 import { DoodlePicker } from "./DoodlePicker";
-import { LayoutPicker } from "./LayoutPicker";
+import { LayoutPicker, OUTRO_CHOICES, STEP_CHOICES, TITLE_CHOICES } from "./LayoutPicker";
 
 type Props = {
   readonly plan: Plan;
@@ -35,13 +35,14 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
         <>
           <Text label="Small line" value={plan.title.lead} max={40} hint={hints.titleLead} onChange={(lead) => onChange((p) => ({ ...p, title: { ...p.title, lead } }))} />
           <Text label="Big line" value={plan.title.main} max={40} hint={hints.titleMain} onChange={(main) => onChange((p) => ({ ...p, title: { ...p.title, main } }))} />
+          <LayoutPicker choices={TITLE_CHOICES} value={plan.title.layout ?? "center"} onChange={(layout) => onChange((p) => ({ ...p, title: { ...p.title, layout } }))} />
         </>
       ) : null}
       {step ? (
         <>
           <Text label="Step title" value={step.title} max={60} hint={hints.stepTitle} onChange={(title) => setStep({ title })} />
           <Text label="Sticky note" value={step.note} max={120} hint={hints.stepNote} onChange={(note) => setStep({ note })} />
-          <LayoutPicker value={step.layout ?? "center"} onChange={(layout) => setStep({ layout })} />
+          <LayoutPicker choices={STEP_CHOICES} value={step.layout ?? "center"} onChange={(layout) => setStep({ layout })} />
           {step.layout === "big-number" ? null : <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />}
         </>
       ) : null}
@@ -49,6 +50,7 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
         <>
           <Text label="Big line" value={plan.outro.main} max={40} hint={hints.outroMain} onChange={(main) => onChange((p) => ({ ...p, outro: { ...p.outro, main } }))} />
           <Text label="Small line" value={plan.outro.sub} max={60} hint={hints.outroSub} onChange={(sub) => onChange((p) => ({ ...p, outro: { ...p.outro, sub } }))} />
+          <LayoutPicker choices={OUTRO_CHOICES} value={plan.outro.layout ?? "center"} onChange={(layout) => onChange((p) => ({ ...p, outro: { ...p.outro, layout } }))} />
         </>
       ) : null}
       <label className="field">

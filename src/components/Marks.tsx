@@ -8,11 +8,11 @@ const grow = (frame: number, delay: number, duration: number) =>
   interpolate(frame, [delay, delay + duration], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
 
 // Under the title: a marker scribble, or a clean bar that grows from the center.
-export const TitleMark = ({ delay }: { readonly delay: number }) => {
+export const TitleMark = ({ delay, align = "center" }: { readonly delay: number; readonly align?: "center" | "left" }) => {
   const frame = useCurrentFrame();
   const { decoration, palette } = useLook();
   if (decoration === "scribble") return <Scribble {...UNDERLINE} delay={delay} duration={22} strokeWidth={14} />;
-  return <div style={{ width: 520 * grow(frame, delay, 18), height: 18, borderRadius: 9, backgroundColor: palette.accent, margin: "24px auto 0" }} />;
+  return <div style={{ width: 520 * grow(frame, delay, 18), height: 18, borderRadius: 9, backgroundColor: palette.accent, margin: align === "left" ? "24px 0 0" : "24px auto 0" }} />;
 };
 
 // Around the outro line: a marker circle, or a highlight band that sweeps in behind the text.
