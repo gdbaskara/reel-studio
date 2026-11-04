@@ -67,7 +67,7 @@ export const LookStrip = ({ project, style, onPreview, onChange }: Props) => {
   const brand = project.options.brand;
   const source = useMemo(
     () => project,
-    [project.plan.title.lead, project.plan.title.main, title?.src, title?.duration, project.options.captions, brand?.handle, brand?.position, project.logo?.src],
+    [project.plan.title.lead, project.plan.title.main, title?.src, title?.duration, project.options.captions, brand?.handle, brand?.position, project.logo?.src, project.options.tune?.textScale, project.options.tune?.speed],
   );
   // Stable callbacks, so memoized tiles do not re-render when the parent passes new closures.
   const latest = useRef({ onPreview, onChange });

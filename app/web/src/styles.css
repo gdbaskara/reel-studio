@@ -111,6 +111,9 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .doodle { width: 44px; height: 40px; padding: 6px; display: grid; place-items: center; border-width: 1.5px; }
 .doodle svg { width: 100%; height: 100%; }
 .doodle.selected { color: var(--accent); }
+.undo-redo { display: inline-flex; gap: 4px; }
+.undo-redo button { padding: 4px 10px; font-size: 16px; line-height: 1; }
+.tune-panel { display: grid; gap: 6px; }
 .look-tools { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; display: grid; gap: 8px; }
 .shuffle-bar, .saved-styles { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .shuffle-bar .shuffle { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }

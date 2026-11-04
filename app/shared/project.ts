@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { LOOK_IDS } from "../../src/looks/types";
 import { TRANSITIONS } from "../../src/transitions";
+import { SPEEDS, TEXT_SCALE_RANGE } from "../../src/looks/tune";
 
 export const DRAWINGS = ["arrow", "circle", "zigzag", "check", "star"] as const;
 // Palette names belong to a look (e.g. Notebook has warm, green and blue); unknown names fall back to the look's first.
@@ -51,6 +52,11 @@ export const LogoSchema = z.object({
   height: z.number().int().positive(),
 });
 
+export const TuneSchema = z.object({
+  textScale: z.number().min(TEXT_SCALE_RANGE.min).max(TEXT_SCALE_RANGE.max),
+  speed: z.enum(SPEEDS),
+});
+
 export const CreateOptionsSchema = z.object({
   language: z.enum(["id", "en"]),
   stepCount: z.number().int().min(2).max(7),
@@ -69,6 +75,7 @@ export const CreateOptionsSchema = z.object({
   brand: BrandSchema.optional(),
   // Absent follows the look's own transition.
   transition: z.enum(TRANSITIONS).optional(),
+  tune: TuneSchema.optional(),
   // Set once music settings are first saved; older projects have none.
   music: MusicSettingsSchema.optional(),
 });
@@ -158,6 +165,7 @@ export const UpdateRequestSchema = z.object({
   brand: BrandSchema.optional(),
   // null goes back to the look's own transition.
   transition: z.enum(TRANSITIONS).nullable().optional(),
+  tune: TuneSchema.optional(),
   music: MusicSettingsSchema.optional(),
   sceneMap: z.record(z.string().regex(SCENE_ID), z.string().regex(SCENE_ID)).optional(),
 });

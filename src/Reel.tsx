@@ -15,7 +15,7 @@ import { BrandMark } from "./components/BrandMark";
 type CanvasProps = { readonly spec: ReelSpec; readonly brand?: Mark; readonly children: ReactNode };
 
 export const Canvas = ({ spec, brand, children }: CanvasProps) => {
-  const look = useMemo(() => resolveLook(spec.look, spec.palette), [spec.look, spec.palette]);
+  const look = useMemo(() => resolveLook(spec.look, spec.palette, "", spec.tune), [spec.look, spec.palette, spec.tune]);
   return (
     <LookProvider value={look}>
       <ContentTopProvider value={brand ? BRANDED_CONTENT_TOP : CONTENT_TOP}>

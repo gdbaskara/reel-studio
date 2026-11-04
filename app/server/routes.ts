@@ -135,7 +135,7 @@ export const apiRouter = (): Router => {
 
   api.put("/projects/:id", async (req, res) => {
     const { id } = params(req);
-    const { plan, captions, palette, look, progressBar, brand, transition, music, sceneMap } = parse(UpdateRequestSchema, req.body);
+    const { plan, captions, palette, look, progressBar, brand, transition, tune, music, sceneMap } = parse(UpdateRequestSchema, req.body);
     const ids = sceneIdsOf(plan);
     const remap = (project: Project) => Object.fromEntries(
       ids.flatMap((newId) => {
@@ -167,6 +167,7 @@ export const apiRouter = (): Router => {
             ...(progressBar === undefined ? {} : { progressBar }),
             ...(brand ? { brand } : {}),
             ...(transition ? { transition } : {}),
+            ...(tune ? { tune } : {}),
             ...(music ? { music } : {}),
           },
         };

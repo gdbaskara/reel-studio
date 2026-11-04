@@ -2,7 +2,7 @@ import { z } from "zod";
 import { lookChoice } from "../../src/looks";
 import { LOOK_IDS } from "../../src/looks/types";
 import { TRANSITIONS } from "../../src/transitions";
-import { BrandSchema, LogoSchema, PALETTE_NAME, STYLE_ID, type CreateOptions, type Project } from "./project";
+import { BrandSchema, LogoSchema, TuneSchema, PALETTE_NAME, STYLE_ID, type CreateOptions, type Project } from "./project";
 
 // A look the user saved to reuse on other reels: the look and palette, the caption and progress bar
 // switches, and the brand mark with its logo. Content, voices and music are never part of it.
@@ -17,6 +17,7 @@ export const SavedStyleSchema = z.object({
   brand: BrandSchema.optional(),
   logo: LogoSchema.optional(),
   transition: z.enum(TRANSITIONS).optional(),
+  tune: TuneSchema.optional(),
 });
 
 export const SaveStyleRequestSchema = z.object({ name: z.string().trim().min(1).max(40) });
@@ -26,7 +27,7 @@ export type SavedStyle = z.infer<typeof SavedStyleSchema>;
 
 export const styleFromProject = (project: Project, id: string, name: string, createdAt: string): SavedStyle => {
   const { id: look, paletteName } = lookChoice(project.options.look, project.options.palette);
-  const { brand, transition } = project.options;
+  const { brand, transition, tune } = project.options;
   return SavedStyleSchema.parse({
     id,
     name: name.trim(),
@@ -38,12 +39,13 @@ export const styleFromProject = (project: Project, id: string, name: string, cre
     ...(brand ? { brand } : {}),
     ...(project.logo ? { logo: project.logo } : {}),
     ...(transition ? { transition } : {}),
+    ...(tune ? { tune } : {}),
   });
 };
 
 // The style replaces every look setting, so a brand or logo the style lacks is removed too.
 export const optionsWithSavedStyle = (options: CreateOptions, style: SavedStyle): CreateOptions => {
-  const { brand: _brand, transition: _transition, ...rest } = options;
+  const { brand: _brand, transition: _transition, tune: _tune, ...rest } = options;
   return {
     ...rest,
     look: style.look,
@@ -52,6 +54,7 @@ export const optionsWithSavedStyle = (options: CreateOptions, style: SavedStyle)
     progressBar: style.progressBar,
     ...(style.brand ? { brand: style.brand } : {}),
     ...(style.transition ? { transition: style.transition } : {}),
+    ...(style.tune ? { tune: style.tune } : {}),
   };
 };
 

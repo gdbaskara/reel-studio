@@ -35,6 +35,8 @@ export type ReelSpec = {
   readonly look?: LookId;
   // Absent uses the look's own transition.
   readonly transition?: "fade" | "slide" | "wipe" | "iris";
+  // Text size and animation speed on top of the look; absent means the look as designed.
+  readonly tune?: { readonly textScale: number; readonly speed: "calm" | "normal" | "fast" };
   readonly palette: Palette;
   readonly title: { readonly lead: string; readonly main: string; readonly layout?: TitleLayout };
   readonly steps: readonly Step[];

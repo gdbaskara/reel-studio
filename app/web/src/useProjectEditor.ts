@@ -4,6 +4,7 @@ import { addStep, draftOf, rebaseOrigin, removeStep, sceneMapOf, type Draft } fr
 import { api, type VoiceChoice } from "./api";
 import { applyStyle, styleOf, type Style } from "./style";
 import { shuffleStyle, undoShuffle, type Locks, type Shuffled } from "./shuffle";
+import { EMPTY_HISTORY, rebaseHistory, record, redo, restore, undo, type History } from "./history";
 
 const SAVE_DELAY_MS = 700;
 
@@ -18,6 +19,7 @@ export const useProjectEditor = (projectId: string) => {
   const [error, setError] = useState<string | null>(null);
   // The look and doodles from before the last shuffle, so it can be undone.
   const [beforeShuffle, setBeforeShuffle] = useState<Shuffled | null>(null);
+  const [history, setHistory] = useState<History>(EMPTY_HISTORY);
   const version = useRef(0);
   const savedVersion = useRef(0);
   const latest = useRef<{ draft: Draft | null; style: Style | null }>({ draft: null, style: null });
@@ -48,6 +50,7 @@ export const useProjectEditor = (projectId: string) => {
       savedVersion.current = sending;
       setProject(saved);
       setDraft((current) => (current ? rebaseOrigin(current, sceneMap) : current));
+      setHistory((h) => rebaseHistory(h, sceneMap));
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -74,17 +77,28 @@ export const useProjectEditor = (projectId: string) => {
     return () => clearTimeout(timer);
   }, [draft, style, saveNow]);
 
+  // Remembers the state before an edit so Undo can return to it. Edits with the same key in quick
+  // succession (typing) share one step; null leaves the edit out of history.
+  const remember = (key: string | null) => {
+    const { draft: d, style: s } = latest.current;
+    if (key === null || !d || !s) return;
+    setHistory((h) => record(h, { draft: d, style: s }, key, Date.now()));
+  };
+
   const change = (next: Draft) => {
+    remember("steps");
     version.current += 1;
     setDraft(next);
   };
 
   // Applies to the newest draft, so it is safe to call after an await.
-  const updatePlan = (fn: (plan: Plan) => Plan) => {
+  const updatePlan = (fn: (plan: Plan) => Plan, key: string | null = "plan") => {
+    remember(key);
     version.current += 1;
     setDraft((current) => (current ? { ...current, plan: fn(current.plan) } : current));
   };
   const setStyleValue = (next: Style) => {
+    remember("style");
     version.current += 1;
     setStyle(next);
   };
@@ -92,9 +106,25 @@ export const useProjectEditor = (projectId: string) => {
   // Shuffle changes the style and the doodles together, as one edit.
   const setLook = (next: Shuffled) => {
     if (!draft) return;
+    remember(`look-${Date.now()}`);
     version.current += 1;
     setStyle(next.style);
     setDraft({ ...draft, plan: next.plan });
+  };
+
+  // Undo and Redo swap the editor's draft and style; pictures, voices, music and the logo stay as they are.
+  const travel = (move: typeof undo) => {
+    const { draft: d, style: s } = latest.current;
+    if (!d || !s) return;
+    const current = { draft: d, style: s };
+    const step = move(history, current);
+    if (!step) return;
+    const next = restore(step.snapshot, current);
+    version.current += 1;
+    setHistory(step.history);
+    setDraft(next.draft);
+    setStyle(next.style);
+    setBeforeShuffle(null);
   };
 
   const shuffle = (locks: Locks) => {
@@ -132,10 +162,11 @@ export const useProjectEditor = (projectId: string) => {
   const applySavedStyle = (styleId: string) =>
     act("style", async () => {
       const saved = await api.applyStyle(projectId, styleId);
-      const { look, palette, captions, progressBar, brand, transition } = styleOf(saved.options);
+      const { look, palette, captions, progressBar, brand, transition, tune } = styleOf(saved.options);
       setProject(saved);
+      remember(`style-${Date.now()}`);
       version.current += 1;
-      setStyle((current) => (current ? { ...current, look, palette, captions, progressBar, brand, transition } : styleOf(saved.options)));
+      setStyle((current) => (current ? { ...current, look, palette, captions, progressBar, brand, transition, tune } : styleOf(saved.options)));
       setBeforeShuffle(null);
     });
 
@@ -165,6 +196,10 @@ export const useProjectEditor = (projectId: string) => {
     dismissError: () => setError(null),
     updatePlan,
     setStyle: setStyleValue,
+    canUndo: history.past.length > 0,
+    canRedo: history.future.length > 0,
+    undo: () => travel(undo),
+    redo: () => travel(redo),
     shuffle,
     canUndoShuffle: beforeShuffle !== null,
     undoShuffle: undoLastShuffle,
@@ -181,18 +216,21 @@ export const useProjectEditor = (projectId: string) => {
         const index = Number(sceneId.slice(5)) - 1;
         const image = saved.plan.steps[index]?.image;
         setProject(saved);
-        if (image) updatePlan((plan) => ({ ...plan, steps: plan.steps.map((s, i) => (i === index ? { ...s, image } : s)) }));
+        if (image) updatePlan((plan) => ({ ...plan, steps: plan.steps.map((s, i) => (i === index ? { ...s, image } : s)) }), null);
       }),
     removeStepImage: (sceneId: string) => {
       const index = Number(sceneId.slice(5)) - 1;
-      updatePlan((plan) => ({
-        ...plan,
-        steps: plan.steps.map((step, i) => {
-          if (i !== index) return step;
-          const { image: _removed, ...rest } = step;
-          return rest;
+      updatePlan(
+        (plan) => ({
+          ...plan,
+          steps: plan.steps.map((step, i) => {
+            if (i !== index) return step;
+            const { image: _removed, ...rest } = step;
+            return rest;
+          }),
         }),
-      }));
+        null,
+      );
     },
     uploadLogo: (file: File) => run("logo", () => api.uploadLogo(projectId, file)),
     removeLogo: () => run("logo", () => api.removeLogo(projectId)),

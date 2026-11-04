@@ -12,6 +12,8 @@ import { MusicPanel } from "../components/MusicPanel";
 import { LookStrip } from "../components/LookStrip";
 import { ShuffleBar } from "../components/ShuffleBar";
 import { TransitionChips } from "../components/TransitionChips";
+import { TunePanel } from "../components/TunePanel";
+import { useUndoKeys } from "../useUndoKeys";
 import { SavedStylesBar } from "../components/SavedStylesBar";
 import { BrandPanel } from "../components/BrandPanel";
 import { useSavedStyles } from "../useSavedStyles";
@@ -25,6 +27,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const [hovered, setHovered] = useState<StyleOverride | null>(null);
   const { status, omnivoiceVoices } = useServices();
   const saved = useSavedStyles();
+  useUndoKeys(editor.undo, editor.redo);
 
   const { project, preview, style } = editor;
   const shown = useMemo(
@@ -53,6 +56,14 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           aria-label="Reel name"
         />
         <span className="save-state">{editor.saving ? "Saving..." : "Saved"}</span>
+        <span className="undo-redo">
+          <button type="button" disabled={!editor.canUndo} onClick={editor.undo} title="Undo (Cmd+Z)" aria-label="Undo">
+            &#8630;
+          </button>
+          <button type="button" disabled={!editor.canRedo} onClick={editor.redo} title="Redo (Cmd+Shift+Z)" aria-label="Redo">
+            &#8631;
+          </button>
+        </span>
         <label className="toggle">
           <input type="checkbox" checked={style.captions} onChange={(e) => editor.setStyle({ ...style, captions: e.target.checked })} />
           Captions
@@ -87,6 +98,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           <LookStrip project={preview} style={style} onPreview={setHovered} onChange={(choice) => editor.setStyle({ ...style, ...choice })} />
           <div className="look-tools">
             <TransitionChips style={style} onChange={(transition) => editor.setStyle({ ...style, transition })} />
+            <TunePanel tune={style.tune} onChange={(tune) => editor.setStyle({ ...style, tune })} />
             <ShuffleBar style={style} canUndo={editor.canUndoShuffle} onShuffle={editor.shuffle} onUndo={editor.undoShuffle} />
             <SavedStylesBar
               styles={saved.styles}
