@@ -46,4 +46,5 @@ export const PASTEL: Look = {
   note: "card",
   captions: "pill",
   emphasis: "marker",
+  transition: "slide",
 };

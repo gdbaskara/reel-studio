@@ -45,4 +45,5 @@ export const KORAN: Look = {
   note: "card",
   captions: "box",
   emphasis: "underline",
+  transition: "wipe",
 };

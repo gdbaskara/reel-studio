@@ -18,7 +18,8 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
   your own title in the editor; hover to try it on the player. Headlines shrink to fit.
 - **Emphasis** - wrap a word in on-screen text in `*asterisks*` to make it stand out in the
   look's emphasis style. The voice never reads the asterisks.
-- **Shuffle** - try a random look, palette and doodles in one click. Keep the parts you like with the lock boxes; Undo puts back the last shuffle.
+- **Transitions and layouts** - scenes come in with a fade, slide, wipe or iris (each look has its own; change it in the editor), and every step can use the centre, left or big-number layout.
+- **Shuffle** - try a random look, palette, doodles and step layouts in one click. Keep the parts you like with the lock boxes; Undo puts back the last shuffle.
 - **Brand** - add a handle such as `@yourname` and a logo (PNG, JPG or WebP) at the top of every scene.
 - **My styles** - save the current look, palette, switches and brand under a name, then apply it to any reel or pick it when creating one. Saved styles live in `saved-styles/` (not committed).
 - **AI picks the look** - with an AI plan, the planner can choose the look that fits the topic.

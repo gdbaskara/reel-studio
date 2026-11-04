@@ -133,7 +133,7 @@ export const apiRouter = (): Router => {
 
   api.put("/projects/:id", async (req, res) => {
     const { id } = params(req);
-    const { plan, captions, palette, look, progressBar, brand, music, sceneMap } = parse(UpdateRequestSchema, req.body);
+    const { plan, captions, palette, look, progressBar, brand, transition, music, sceneMap } = parse(UpdateRequestSchema, req.body);
     const ids = sceneIdsOf(plan);
     const remap = (project: Project) => Object.fromEntries(
       ids.flatMap((newId) => {
@@ -148,21 +148,27 @@ export const apiRouter = (): Router => {
       }),
     );
     res.json(
-      await mutate(id, (project) => ({
-        ...project,
-        name: plan.name,
-        plan,
-        voice: remap(project),
-        options: {
-          ...project.options,
-          captions,
-          palette,
-          ...(look ? { look } : {}),
-          ...(progressBar === undefined ? {} : { progressBar }),
-          ...(brand ? { brand } : {}),
-          ...(music ? { music } : {}),
-        },
-      })),
+      await mutate(id, (project) => {
+        // An absent transition keeps the saved one; null clears it so the look's own applies.
+        const { transition: _saved, ...rest } = project.options;
+        const base = transition === undefined ? project.options : rest;
+        return {
+          ...project,
+          name: plan.name,
+          plan,
+          voice: remap(project),
+          options: {
+            ...base,
+            captions,
+            palette,
+            ...(look ? { look } : {}),
+            ...(progressBar === undefined ? {} : { progressBar }),
+            ...(brand ? { brand } : {}),
+            ...(transition ? { transition } : {}),
+            ...(music ? { music } : {}),
+          },
+        };
+      }),
     );
   });
 

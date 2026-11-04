@@ -84,6 +84,8 @@ export type Look = {
   readonly note: NoteStyle;
   readonly captions: CaptionStyle;
   readonly emphasis: EmphasisStyle;
+  // How scenes after the first come in; see src/transitions.ts.
+  readonly transition: "fade" | "slide" | "wipe" | "iris";
 };
 
 // A look with its palette picked and its fonts loaded, ready for the scenes to draw.

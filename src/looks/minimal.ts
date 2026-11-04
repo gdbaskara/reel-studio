@@ -45,4 +45,5 @@ export const MINIMAL: Look = {
   note: "plain",
   captions: "minimal",
   emphasis: "underline",
+  transition: "fade",
 };

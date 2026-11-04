@@ -1,6 +1,7 @@
 import type { CreateOptions, Plan } from "../../../shared/project";
 import { hintsFor } from "../hints";
 import { DoodlePicker } from "./DoodlePicker";
+import { LayoutPicker } from "./LayoutPicker";
 
 type Props = {
   readonly plan: Plan;
@@ -40,7 +41,8 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
         <>
           <Text label="Step title" value={step.title} max={60} hint={hints.stepTitle} onChange={(title) => setStep({ title })} />
           <Text label="Sticky note" value={step.note} max={120} hint={hints.stepNote} onChange={(note) => setStep({ note })} />
-          <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />
+          <LayoutPicker value={step.layout ?? "center"} onChange={(layout) => setStep({ layout })} />
+          {step.layout === "big-number" ? null : <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />}
         </>
       ) : null}
       {sceneId === "outro" ? (

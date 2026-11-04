@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { LOOKS } from "../src/looks";
-import { DRAWINGS } from "../app/shared/project";
+import { DRAWINGS, STEP_LAYOUTS } from "../app/shared/project";
 import { manualPlan } from "../app/server/planner";
 import { canShuffle, shuffleStyle, undoShuffle, type Locks } from "../app/web/src/shuffle";
 import type { Style } from "../app/web/src/style";
 
-const NONE: Locks = { look: false, palette: false, doodles: false };
-const style: Style = { look: "notebook", palette: "green", captions: true, progressBar: true, brand: { handle: "", position: "top-left" }, music: { volume: 0.3, duck: true } };
+const NONE: Locks = { look: false, palette: false, doodles: false, layouts: false };
+const style: Style = { look: "notebook", palette: "green", captions: true, progressBar: true, brand: { handle: "", position: "top-left" }, transition: null, music: { volume: 0.3, duck: true } };
 const plan = manualPlan("x", { language: "id", stepCount: 4, planMode: "manual", voiceMode: "mixed", captions: true, palette: "green" });
 
 // Cycles through fixed values so every pick is predictable.
@@ -40,10 +40,12 @@ describe("shuffleStyle", () => {
   });
 
   it("leaves locked parts alone", () => {
-    const next = shuffleStyle(style, plan, { look: true, palette: true, doodles: false }, seq(0.4));
+    const next = shuffleStyle(style, plan, { look: true, palette: true, doodles: false, layouts: false }, seq(0.4));
     expect(next.style).toEqual(style);
-    const doodlesLocked = shuffleStyle(style, plan, { ...NONE, doodles: true }, seq(0.4));
+    const doodlesLocked = shuffleStyle(style, plan, { ...NONE, doodles: true, layouts: true }, seq(0.4));
     expect(doodlesLocked.plan).toBe(plan);
+    const layoutsLocked = shuffleStyle(style, plan, { ...NONE, layouts: true }, seq(0.4));
+    expect(layoutsLocked.plan.steps.map((s) => s.layout)).toEqual(plan.steps.map((s) => s.layout));
   });
 
   it("ignores the palette lock while the look itself may change", () => {
@@ -53,11 +55,23 @@ describe("shuffleStyle", () => {
   });
 });
 
+describe("shuffled layouts", () => {
+  it("gives steps a known layout, different from the one they had", () => {
+    const next = shuffleStyle(style, plan, { ...NONE, doodles: true }, seq(0.7, 0.1));
+    next.plan.steps.forEach((step) => {
+      expect(STEP_LAYOUTS).toContain(step.layout);
+      expect(step.layout).not.toBe("center");
+    });
+    expect(next.plan.steps.map((s) => s.drawing)).toEqual(plan.steps.map((s) => s.drawing));
+  });
+});
+
 describe("canShuffle", () => {
   it("is false only when nothing is left to change", () => {
     expect(canShuffle(style, NONE)).toBe(true);
-    expect(canShuffle(style, { look: true, palette: true, doodles: true })).toBe(false);
-    expect(canShuffle(style, { look: true, palette: false, doodles: true })).toBe(true);
+    expect(canShuffle(style, { look: true, palette: true, doodles: true, layouts: true })).toBe(false);
+    expect(canShuffle(style, { look: true, palette: true, doodles: true, layouts: false })).toBe(true);
+    expect(canShuffle(style, { look: true, palette: false, doodles: true, layouts: true })).toBe(true);
   });
 });
 
@@ -68,6 +82,7 @@ describe("undoShuffle", () => {
     const back = undoShuffle({ style, plan }, { style: { ...shuffled.style, captions: false }, plan: edited });
     expect(back.style).toEqual({ ...style, captions: false });
     expect(back.plan.steps.map((s) => s.drawing)).toEqual(plan.steps.map((s) => s.drawing));
+    expect(back.plan.steps.map((s) => s.layout)).toEqual(plan.steps.map((s) => s.layout));
     expect(back.plan.steps[0].title).toBe("Baru");
   });
 

@@ -11,6 +11,7 @@ import { RenderBar } from "../components/RenderBar";
 import { MusicPanel } from "../components/MusicPanel";
 import { LookStrip } from "../components/LookStrip";
 import { ShuffleBar } from "../components/ShuffleBar";
+import { TransitionChips } from "../components/TransitionChips";
 import { SavedStylesBar } from "../components/SavedStylesBar";
 import { BrandPanel } from "../components/BrandPanel";
 import { useSavedStyles } from "../useSavedStyles";
@@ -85,6 +86,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           </div>
           <LookStrip project={preview} style={style} onPreview={setHovered} onChange={(choice) => editor.setStyle({ ...style, ...choice })} />
           <div className="look-tools">
+            <TransitionChips style={style} onChange={(transition) => editor.setStyle({ ...style, transition })} />
             <ShuffleBar style={style} canUndo={editor.canUndoShuffle} onShuffle={editor.shuffle} onUndo={editor.undoShuffle} />
             <SavedStylesBar
               styles={saved.styles}

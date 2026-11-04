@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { lookChoice } from "../../src/looks";
 import { LOOK_IDS } from "../../src/looks/types";
+import { TRANSITIONS } from "../../src/transitions";
 import { BrandSchema, LogoSchema, PALETTE_NAME, STYLE_ID, type CreateOptions, type Project } from "./project";
 
 // A look the user saved to reuse on other reels: the look and palette, the caption and progress bar
@@ -15,6 +16,7 @@ export const SavedStyleSchema = z.object({
   progressBar: z.boolean(),
   brand: BrandSchema.optional(),
   logo: LogoSchema.optional(),
+  transition: z.enum(TRANSITIONS).optional(),
 });
 
 export const SaveStyleRequestSchema = z.object({ name: z.string().trim().min(1).max(40) });
@@ -24,7 +26,7 @@ export type SavedStyle = z.infer<typeof SavedStyleSchema>;
 
 export const styleFromProject = (project: Project, id: string, name: string, createdAt: string): SavedStyle => {
   const { id: look, paletteName } = lookChoice(project.options.look, project.options.palette);
-  const { brand } = project.options;
+  const { brand, transition } = project.options;
   return SavedStyleSchema.parse({
     id,
     name: name.trim(),
@@ -35,12 +37,13 @@ export const styleFromProject = (project: Project, id: string, name: string, cre
     progressBar: project.options.progressBar ?? true,
     ...(brand ? { brand } : {}),
     ...(project.logo ? { logo: project.logo } : {}),
+    ...(transition ? { transition } : {}),
   });
 };
 
 // The style replaces every look setting, so a brand or logo the style lacks is removed too.
 export const optionsWithSavedStyle = (options: CreateOptions, style: SavedStyle): CreateOptions => {
-  const { brand: _brand, ...rest } = options;
+  const { brand: _brand, transition: _transition, ...rest } = options;
   return {
     ...rest,
     look: style.look,
@@ -48,6 +51,7 @@ export const optionsWithSavedStyle = (options: CreateOptions, style: SavedStyle)
     captions: style.captions,
     progressBar: style.progressBar,
     ...(style.brand ? { brand: style.brand } : {}),
+    ...(style.transition ? { transition: style.transition } : {}),
   };
 };
 

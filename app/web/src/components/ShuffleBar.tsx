@@ -13,6 +13,7 @@ const LOCKS: readonly { readonly key: keyof Locks; readonly label: string }[] = 
   { key: "look", label: "Look" },
   { key: "palette", label: "Colours" },
   { key: "doodles", label: "Doodles" },
+  { key: "layouts", label: "Layouts" },
 ];
 
 const Dice = () => (

@@ -46,4 +46,5 @@ export const NEON: Look = {
   note: "pill",
   captions: "outline",
   emphasis: "color",
+  transition: "iris",
 };

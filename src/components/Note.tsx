@@ -19,7 +19,9 @@ const enter = (from: "right" | "bottom" | "fade", t: number) =>
   from === "right" ? `translateX(${(1 - t) * 700}px)` : from === "bottom" ? `translateY(${(1 - t) * 160}px)` : "";
 
 // The short detail under a step title. Text without *emphasis* is drawn exactly as typed.
-export const Note = ({ text, delay }: { readonly text: string; readonly delay: number }) => {
+type NoteProps = { readonly text: string; readonly delay: number; readonly align?: "center" | "left" };
+
+export const Note = ({ text, delay, align = "center" }: NoteProps) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const look = useLook();
@@ -32,7 +34,7 @@ export const Note = ({ text, delay }: { readonly text: string; readonly delay: n
         maxWidth: 860,
         fontSize: type.note,
         lineHeight: 1.1,
-        textAlign: "center",
+        textAlign: align,
         ...STYLES[look.note](palette),
         opacity: look.note === "plain" ? 0.8 * slide : slide,
         transform: `${enter(motion.noteFrom, slide)} rotate(${motion.noteTilt}deg)`.trim(),

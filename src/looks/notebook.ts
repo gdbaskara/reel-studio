@@ -45,4 +45,5 @@ export const NOTEBOOK: Look = {
   note: "sticky",
   captions: "pill",
   emphasis: "color",
+  transition: "fade",
 };
