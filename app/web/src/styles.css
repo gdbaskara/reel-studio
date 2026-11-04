@@ -73,6 +73,7 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .project-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .project-list li { display: flex; justify-content: space-between; gap: 10px; }
 .project-list a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.project-meta { display: inline-flex; gap: 12px; align-items: center; }
 .project-list time { color: var(--muted); font-size: 13px; }
 
 /* Editor */
@@ -110,6 +111,21 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .doodle { width: 44px; height: 40px; padding: 6px; display: grid; place-items: center; border-width: 1.5px; }
 .doodle svg { width: 100%; height: 100%; }
 .doodle.selected { color: var(--accent); }
+.look-tools { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; display: grid; gap: 8px; }
+.shuffle-bar, .saved-styles { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.shuffle-bar .shuffle { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.locks { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.locks small, .saved-styles > small { color: var(--muted); font-weight: 600; }
+.lock { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.lock input { width: auto; }
+.lock.disabled { opacity: 0.5; }
+.saved-style { display: inline-flex; align-items: center; }
+.saved-style .look-chip { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.remove-style { border-left: none; border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 7px 9px; color: var(--muted); }
+.style-name { display: flex; gap: 6px; align-items: center; }
+.style-name input { width: 190px; }
+.brand-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.logo-preview { height: 40px; max-width: 120px; object-fit: contain; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); }
 .music-panel { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; box-sizing: border-box; }
 .music-panel .clip small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slider input { width: 100%; }

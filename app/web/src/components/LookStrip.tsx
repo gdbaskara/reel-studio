@@ -61,12 +61,13 @@ const LookTile = memo(({ source, look, palette, onPreview, onChange }: TileProps
 
 // Picks the reel's look from stills of its own title scene, then a palette within that look.
 export const LookStrip = ({ project, style, onPreview, onChange }: Props) => {
-  // Stills only depend on the title scene. Autosaves hand back a new project object each time,
+  // Stills only depend on the title scene and the brand mark. Autosaves hand back a new project object each time,
   // so the source is rebuilt from those values only and the six stills are not redrawn on every save.
   const title = project.voice.title;
+  const brand = project.options.brand;
   const source = useMemo(
     () => project,
-    [project.plan.title.lead, project.plan.title.main, title?.src, title?.duration, project.options.captions],
+    [project.plan.title.lead, project.plan.title.main, title?.src, title?.duration, project.options.captions, brand?.handle, brand?.position, project.logo?.src],
   );
   // Stable callbacks, so memoized tiles do not re-render when the parent passes new closures.
   const latest = useRef({ onPreview, onChange });

@@ -27,3 +27,5 @@ export const lookChoice = (id: LookId | undefined, paletteName: string | undefin
   const named = look.palettes.find((p) => p.name === paletteName) ?? look.palettes[0];
   return { id: look.id, look, paletteName: named.name, palette: named.colors };
 };
+
+export const firstPaletteOf = (id: LookId): string => LOOKS[id].palettes[0].name;

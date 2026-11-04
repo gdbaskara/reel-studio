@@ -1,9 +1,12 @@
 import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import { promisify } from "node:util";
+import { z } from "zod";
 import { DRAWINGS, PlanSchema, type CreateOptions, type Plan } from "../shared/project";
 import { loadEnv } from "../../scripts/env.mjs";
 import { ROOT } from "./paths";
+import { LOOKS } from "../../src/looks";
+import { LOOK_IDS, type LookId } from "../../src/looks/types";
 
 const run = promisify(execFile);
 const LANG_NAME = { id: "Bahasa Indonesia (casual, friendly, use 'kamu')", en: "English (casual, friendly)" } as const;
@@ -12,7 +15,19 @@ const NUMBER_WORDS = {
   en: ["One", "Two", "Three", "Four", "Five", "Six", "Seven"],
 } as const;
 
-const plannerPrompt = (prompt: string, options: CreateOptions) => `You write short vertical explainer reels.
+const LookIdSchema = z.enum(LOOK_IDS);
+
+const lookMenu = () => LOOK_IDS.map((id) => `- "${id}": ${LOOKS[id].description}`).join("\n");
+
+// Asked only when the user lets the AI pick the look.
+const lookRequest = (pick: boolean) =>
+  pick
+    ? `,
+  "look": the visual style that best fits the topic and audience, one of:
+${lookMenu()}`
+    : "";
+
+export const plannerPrompt = (prompt: string, options: CreateOptions, pickLook = false) => `You write short vertical explainer reels.
 Topic from the user: """${prompt}"""
 
 Write a plan in ${LANG_NAME[options.language]} with exactly ${options.stepCount} steps.
@@ -27,7 +42,7 @@ Return ONLY a JSON object, no prose, no code fences, matching:
     "step-1": "starts with '${NUMBER_WORDS[options.language][0]}.' then 1-2 short sentences",
     "...": "one entry per step: step-1 .. step-${options.stepCount}",
     "outro": "one short closing sentence"
-  }
+  }${lookRequest(pickLook)}
 }
 Keep every narration line under 25 words. Do not invent facts you are unsure about; stay generic instead.`;
 
@@ -61,15 +76,24 @@ const viaClaudeCli = async (prompt: string): Promise<string> => {
   return envelope.result;
 };
 
-export const planWithAi = async (prompt: string, options: CreateOptions): Promise<Plan> => {
+export type PlannerReply = { readonly plan: Plan; readonly look?: LookId };
+
+// Reads the plan from the reply. A look the planner made up is ignored rather than failing the plan.
+export const parsePlannerReply = (raw: string): PlannerReply => {
+  const json = extractJson(raw);
+  const parsed = PlanSchema.safeParse(json);
+  if (!parsed.success) throw new Error(`Planner returned an invalid plan: ${parsed.error.issues[0]?.message}`);
+  const look = LookIdSchema.safeParse((json as { look?: unknown }).look);
+  return look.success ? { plan: parsed.data, look: look.data } : { plan: parsed.data };
+};
+
+export const planWithAi = async (prompt: string, options: CreateOptions, pickLook = false): Promise<PlannerReply> => {
   const env = loadEnv(ROOT);
-  const text = plannerPrompt(prompt, options);
+  const text = plannerPrompt(prompt, options, pickLook);
   const raw = env.ANTHROPIC_API_KEY
     ? await viaAnthropicApi(env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL || "claude-sonnet-5-5", text)
     : await viaClaudeCli(text);
-  const parsed = PlanSchema.safeParse(extractJson(raw));
-  if (!parsed.success) throw new Error(`Planner returned an invalid plan: ${parsed.error.issues[0]?.message}`);
-  return parsed.data;
+  return parsePlannerReply(raw);
 };
 
 // Blank plan for "write it myself": every scene starts empty and the editor shows hints instead.

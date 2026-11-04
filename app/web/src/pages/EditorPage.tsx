@@ -10,6 +10,10 @@ import { VoicePanel } from "../components/VoicePanel";
 import { RenderBar } from "../components/RenderBar";
 import { MusicPanel } from "../components/MusicPanel";
 import { LookStrip } from "../components/LookStrip";
+import { ShuffleBar } from "../components/ShuffleBar";
+import { SavedStylesBar } from "../components/SavedStylesBar";
+import { BrandPanel } from "../components/BrandPanel";
+import { useSavedStyles } from "../useSavedStyles";
 import { applyStyle, type StyleOverride } from "../style";
 
 export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
@@ -19,6 +23,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   // A look or palette under the mouse, shown on the player but never saved.
   const [hovered, setHovered] = useState<StyleOverride | null>(null);
   const { status, omnivoiceVoices } = useServices();
+  const saved = useSavedStyles();
 
   const { project, preview, style } = editor;
   const shown = useMemo(
@@ -55,6 +60,9 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           <input type="checkbox" checked={style.progressBar} onChange={(e) => editor.setStyle({ ...style, progressBar: e.target.checked })} />
           Progress bar
         </label>
+        <button disabled={editor.busy.has("duplicate")} onClick={() => editor.duplicate((copy) => navigate(copy.id))} title="Make a copy of this reel to use as a template">
+          Duplicate
+        </button>
         <RenderBar project={project} busy={editor.busy.size > 0} onRender={editor.render} onReset={editor.resetRender} />
       </header>
 
@@ -76,6 +84,24 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             <ScenePreview project={shown} sceneIndex={index} mode={mode} />
           </div>
           <LookStrip project={preview} style={style} onPreview={setHovered} onChange={(choice) => editor.setStyle({ ...style, ...choice })} />
+          <div className="look-tools">
+            <ShuffleBar style={style} canUndo={editor.canUndoShuffle} onShuffle={editor.shuffle} onUndo={editor.undoShuffle} />
+            <SavedStylesBar
+              styles={saved.styles}
+              busy={editor.busy.has("style")}
+              onApply={editor.applySavedStyle}
+              onRemove={(id) => saved.remove(id).catch((e: Error) => editor.reportError(e.message))}
+              onSave={(name) => editor.saveStyle(name, saved.refresh)}
+            />
+          </div>
+          <BrandPanel
+            brand={style.brand}
+            logo={preview.logo}
+            busy={editor.busy.has("logo")}
+            onChange={(brand) => editor.setStyle({ ...style, brand })}
+            onUpload={editor.uploadLogo}
+            onRemoveLogo={editor.removeLogo}
+          />
           <MusicPanel
             music={preview.music}
             settings={style.music}

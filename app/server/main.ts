@@ -25,7 +25,7 @@ const vite = await createVite({
 });
 app.use(vite.middlewares);
 
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: err.message });
     return;
@@ -33,7 +33,8 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   // Body-parser rejects oversized or malformed bodies with a client status; pass that on instead of a 500.
   const status = (err as { status?: unknown } | null)?.status;
   if (typeof status === "number" && status >= 400 && status < 500) {
-    const message = status === 413 ? "That file is too big. Try an MP3 or M4A, or a shorter file." : "The request could not be read.";
+    const tooBig = req.path.endsWith("/logo") ? "That image is too big. Use one under 8 MB." : "That file is too big. Try an MP3 or M4A, or a shorter file.";
+    const message = status === 413 ? tooBig : "The request could not be read.";
     res.status(status).json({ error: message });
     return;
   }

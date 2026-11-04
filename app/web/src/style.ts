@@ -1,6 +1,6 @@
-import { musicSettings, type CreateOptions, type MusicSettings, type Project } from "../../shared/project";
+import { DEFAULT_BRAND_POSITION, musicSettings, type Brand, type CreateOptions, type MusicSettings, type Project } from "../../shared/project";
 import { toReelProps } from "../../shared/toReel";
-import { DEFAULT_LOOK, LOOKS, lookChoice } from "../../../src/looks";
+import { DEFAULT_LOOK, firstPaletteOf, lookChoice } from "../../../src/looks";
 import type { LookId } from "../../../src/looks/types";
 import type { ReelProps } from "../../../src/types";
 import { buildScenes } from "../../../src/timeline";
@@ -12,8 +12,11 @@ export type Style = {
   readonly palette: string;
   readonly captions: boolean;
   readonly progressBar: boolean;
+  readonly brand: Brand;
   readonly music: MusicSettings;
 };
+
+export const NO_BRAND: Brand = { handle: "", position: DEFAULT_BRAND_POSITION };
 
 // A look and palette shown on the player while hovering, without being saved.
 export type StyleOverride = Pick<Style, "look" | "palette">;
@@ -23,10 +26,11 @@ export const styleOf = (options: CreateOptions): Style => ({
   palette: options.palette,
   captions: options.captions,
   progressBar: options.progressBar ?? true,
+  brand: options.brand ?? NO_BRAND,
   music: musicSettings(options),
 });
 
-export const firstPalette = (look: LookId): string => LOOKS[look].palettes[0].name;
+export const firstPalette = firstPaletteOf;
 
 // Switching looks starts from the new look's first palette, since palette names belong to a look.
 export const withLook = (style: Style, look: LookId): Style => ({ ...style, look, palette: firstPalette(look) });

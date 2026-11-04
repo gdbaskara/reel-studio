@@ -48,6 +48,13 @@ export type Music = {
   readonly duck: boolean;
 };
 
+// A handle and/or logo shown in a top corner of every scene. logo is an image URL.
+export type BrandMark = {
+  readonly handle: string;
+  readonly position: "top-left" | "top-center" | "top-right";
+  readonly logo?: string;
+};
+
 export type ReelProps = {
   readonly spec: ReelSpec;
   readonly voice: Voiceover;
@@ -55,4 +62,5 @@ export type ReelProps = {
   readonly music?: Music;
   // The thin bar along the bottom edge that shows how far the reel has played.
   readonly progressBar?: boolean;
+  readonly brand?: BrandMark;
 };
