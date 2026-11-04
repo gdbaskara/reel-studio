@@ -1,5 +1,6 @@
 import type { CreateRequest, Generator, Project, UpdateRequest } from "../../shared/project";
 import type { SavedStyle } from "../../shared/savedStyle";
+import type { Proposal } from "../../shared/restyle";
 
 export type ProjectSummary = Pick<Project, "id" | "name" | "updatedAt">;
 export type Status = {
@@ -62,6 +63,7 @@ export const api = {
     }),
   removeLogo: (id: string) => request<Project>(`/projects/${id}/logo`, { method: "DELETE" }),
   duplicate: (id: string) => request<Project>(`/projects/${id}/duplicate`, { method: "POST" }),
+  restyle: (id: string, text: string) => request<Proposal>(`/projects/${id}/restyle`, json("POST", { request: text })),
   styles: () => request<SavedStyle[]>("/styles"),
   saveStyle: (id: string, name: string) => request<SavedStyle>(`/projects/${id}/styles`, json("POST", { name })),
   deleteStyle: (styleId: string) => request<SavedStyle[]>(`/styles/${styleId}`, { method: "DELETE" }),

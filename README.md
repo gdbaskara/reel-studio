@@ -22,6 +22,7 @@ Built on [Remotion](https://www.remotion.dev/), so every reel is a React compone
 - **Pictures** - add a screenshot or photo (PNG, JPG or WebP) to any step. It takes the doodle's place and shrinks to fit between the title, the note and the captions.
 - **Fine-tune** - a text size slider (80-120%) and a calm, normal or fast animation speed on top of any look.
 - **Undo and Redo** - buttons in the top bar or Cmd+Z / Cmd+Shift+Z for text, look, layout, brand and settings. Typing in a field counts as one step. Pictures, voices, music and the logo are not part of it.
+- **Restyle** - one-click directions (Calmer, Bolder, Neater, Playful), or describe a style and let the AI suggest a look, palette, transition, speed and layouts. Every suggestion is previewed on the player first, then applied as one edit you can undo.
 - **Shuffle** - try a random look, palette, doodles and scene layouts in one click. Keep the parts you like with the lock boxes; Undo puts back the last shuffle.
 - **Brand** - add a handle such as `@yourname` and a logo (PNG, JPG or WebP) at the top of every scene.
 - **My styles** - save the current look, palette, switches and brand under a name, then apply it to any reel or pick it when creating one. Saved styles live in `saved-styles/` (not committed).
