@@ -4,15 +4,27 @@ import { createServer as createVite } from "vite";
 import { apiRouter } from "./routes";
 import { HttpError, ROOT } from "./paths";
 import { serverPort } from "./port";
+import { allowedHosts, isAllowedHost, isAllowedOrigin, resolvePublicHost } from "./hosts";
+import { loadEnv } from "../../scripts/env.mjs";
 
 const PORT = serverPort();
+const PUBLIC_HOST = resolvePublicHost(loadEnv(ROOT));
+const ALLOWED = allowedHosts(PORT, PUBLIC_HOST);
 const app = express();
-const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
+const READS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-// Only answer requests addressed to this machine (blocks DNS-rebinding pages from driving the API).
+// Only answer requests addressed to this machine or the configured public host, and take changes
+// only from the app's own pages.
 app.use((req, res, next) => {
-  if (ALLOWED_HOSTS.has(req.headers.host ?? "")) return next();
-  res.status(403).json({ error: "Forbidden host" });
+  if (!isAllowedHost(ALLOWED, req.headers.host)) {
+    res.status(403).json({ error: "Forbidden host" });
+    return;
+  }
+  if (!READS.has(req.method) && !isAllowedOrigin(ALLOWED, req.headers.origin)) {
+    res.status(403).json({ error: "Forbidden origin" });
+    return;
+  }
+  next();
 });
 app.use("/api", apiRouter());
 
@@ -21,7 +33,8 @@ const vite = await createVite({
   root: join(ROOT, "app", "web"),
   configFile: false,
   appType: "spa",
-  server: { middlewareMode: true, fs: { allow: [ROOT] } },
+  // The Host check above already runs first; Vite gets the same list so it serves the public host too.
+  server: { middlewareMode: true, fs: { allow: [ROOT] }, allowedHosts: PUBLIC_HOST ? [PUBLIC_HOST] : [] },
 });
 app.use(vite.middlewares);
 
@@ -53,5 +66,5 @@ app.listen(PORT, "127.0.0.1", (err?: Error) => {
     console.error(busy ? `Port ${PORT} is already in use. Stop the other server or set PORT in .env.local.` : err);
     process.exit(1);
   }
-  console.log(`Reel Studio running at http://localhost:${PORT}`);
+  console.log(`Reel Studio running at http://localhost:${PORT}${PUBLIC_HOST ? ` and https://${PUBLIC_HOST}` : ""}`);
 });
