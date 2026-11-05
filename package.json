@@ -8,6 +8,7 @@
     "render:hooks": "remotion render src/index.ts Hooks out/hooks.mp4",
     "render:atlas": "remotion render src/index.ts Atlas out/atlas.mp4",
     "app": "tsx app/server/main.ts",
+    "start:all": "bash scripts/start-all.sh",
     "setup:whisper": "bash scripts/setup-whisper.sh",
     "omnivoice": "bash scripts/run-omnivoice.sh",
     "setup:omnivoice": "bash scripts/setup-omnivoice.sh",

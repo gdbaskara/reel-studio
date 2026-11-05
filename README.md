@@ -92,6 +92,7 @@ On another port: `OMNIVOICE_PORT=17601 npm run omnivoice`, and set
 | Command | What it does |
 | --- | --- |
 | `npm run app` | Start Reel Studio (Express API + Vite UI on one port) |
+| `npm run start:all` | Start the app, OmniVoice (if set up) and the tunnel (if `TUNNEL_NAME` is set), skipping any already running. Logs in `out/logs/`; Ctrl+C stops what it started |
 | `npm run setup:whisper` | Install whisper.cpp and download the caption timing model |
 | `npm run setup:omnivoice` | Create the OmniVoice Python environment (weights download on first start) |
 | `npm run omnivoice` | Start the local OmniVoice TTS server (`127.0.0.1:17600`) |
@@ -131,9 +132,24 @@ your own as `~/.cache/reel-studio/omnivoice-voices/<id>.wav` plus `<id>.txt` (ex
 transcript). **License:** OmniVoice code is Apache-2.0, but its pretrained weights
 are CC-BY-NC, so OmniVoice voiceovers are for non-commercial use only.
 
+## Sharing through a Cloudflare Tunnel
+
+To open Reel Studio from another device, run it behind a Cloudflare Tunnel with Cloudflare Access in
+front. The app has no login of its own, so never expose it without Access.
+
+1. In Cloudflare Zero Trust, add a Self-hosted Access application for the host name (for example
+   `reel.example.com`) with a policy that allows only your email.
+2. `cloudflared tunnel login`, then `cloudflared tunnel create reel-studio` and
+   `cloudflared tunnel route dns reel-studio reel.example.com`.
+3. Write `~/.cloudflared/reel-studio.yml` with the tunnel id, its credentials file, and an ingress rule
+   from the host name to `http://127.0.0.1:4310`.
+4. In `.env.local`, set `PUBLIC_HOST=reel.example.com` and `TUNNEL_NAME=reel-studio`.
+5. `npm run start:all`.
+
 ## Security notes
 
-- The server binds to `127.0.0.1` and rejects unexpected `Host` headers.
+- The server binds to `127.0.0.1` and rejects unexpected `Host` headers. `PUBLIC_HOST` adds one more.
+- Requests that change data are rejected when they come from another site's page (checked by `Origin`).
 - API keys live only in `.env.local`, which is gitignored.
 
 ## Roadmap
