@@ -17,6 +17,7 @@ import { RestylePanel } from "../components/RestylePanel";
 import { applyProposal } from "../restyle";
 import type { Proposal } from "../../../shared/restyle";
 import { useUndoKeys } from "../useUndoKeys";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { SavedStylesBar } from "../components/SavedStylesBar";
 import { BrandPanel } from "../components/BrandPanel";
 import { useSavedStyles } from "../useSavedStyles";
@@ -83,6 +84,7 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
         <button disabled={editor.busy.has("duplicate")} onClick={() => editor.duplicate((copy) => navigate(copy.id))} title="Make a copy of this reel to use as a template">
           Duplicate
         </button>
+        <ThemeToggle />
         <RenderBar project={project} busy={editor.busy.size > 0} onRender={editor.render} onReset={editor.resetRender} />
       </header>
 
