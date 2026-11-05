@@ -13,6 +13,7 @@ import { defaultVoiceMode } from "../voiceDefault";
 import { firstPalette } from "../style";
 import { useSavedStyles } from "../useSavedStyles";
 import { StyleSwatch } from "../components/SavedStylesBar";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 // Where a new reel's look comes from: the AI planner, the look chips, or a saved style.
 type LookSource = { readonly kind: "ai" } | { readonly kind: "look" } | { readonly kind: "style"; readonly id: string };
@@ -86,7 +87,10 @@ export const CreatePage = () => {
   return (
     <main className="create">
       <header className="brand">
-        <h1>Reel Studio</h1>
+        <div className="brand-row-top">
+          <h1>Reel Studio</h1>
+          <ThemeToggle />
+        </div>
         <p>Describe a reel. Choose how it gets planned and voiced. Then fine-tune every scene.</p>
       </header>
 
