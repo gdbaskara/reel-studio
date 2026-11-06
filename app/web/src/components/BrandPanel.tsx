@@ -20,7 +20,7 @@ const POSITION_LABEL: Readonly<Record<BrandPosition, string>> = {
 export const BrandPanel = ({ brand, logo, busy, onChange, onUpload, onRemoveLogo }: Props) => {
   const input = useRef<HTMLInputElement>(null);
   return (
-    <section className="music-panel brand-panel">
+    <section className="brand-panel">
       <header>
         <h3>Brand</h3>
         {busy ? <span className="badge">Working...</span> : null}

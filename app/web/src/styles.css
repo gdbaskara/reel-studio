@@ -4,9 +4,10 @@
   --text: #1c1f1d;
   --muted: #6b716d;
   --line: #e1e4e0;
-  --accent: #0a8a5f;
+  --accent: #077a52;
   --accent-soft: #e3f3ec;
-  --warn: #b26b00;
+  --on-accent: #ffffff;
+  --warn: #8a5300;
   --warn-soft: #fff3dc;
   --danger: #c2412d;
   color-scheme: light;
@@ -21,6 +22,7 @@
     --line: #2c312e;
     --accent: #34c38f;
     --accent-soft: #173327;
+    --on-accent: #0b1f17;
     --warn: #f0b04a;
     --warn-soft: #33270f;
     --danger: #ef7a66;
@@ -35,6 +37,7 @@
   --line: #2c312e;
   --accent: #34c38f;
   --accent-soft: #173327;
+  --on-accent: #0b1f17;
   --warn: #f0b04a;
   --warn-soft: #33270f;
   --danger: #ef7a66;
@@ -45,10 +48,26 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 sys
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 12px; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; padding: 10px 18px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; padding: 10px 18px; }
 button.danger { color: var(--danger); }
 button.subtle { border: none; padding-left: 0; background: none; }
 button.link { border: none; background: none; padding: 0; color: var(--accent); }
+/* Every control answers the pointer: a tint on hover, a press on click, a clear ring for the keyboard. */
+button, .choice-card, summary { transition: background-color 0.12s, border-color 0.12s, transform 0.08s; }
+button:not(:disabled):hover, .choice-card:not(.disabled):hover, summary:hover { border-color: var(--accent); background-color: var(--accent-soft); }
+button.primary:not(:disabled):hover { background: var(--accent); filter: brightness(1.08); }
+button.link:not(:disabled):hover, button.subtle:not(:disabled):hover { background: none; text-decoration: underline; }
+button:not(:disabled):active, .choice-card:not(.disabled):active { transform: translateY(1px) scale(0.98); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+summary { cursor: pointer; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.spinner { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  .spinner { animation-duration: 2.4s; }
+  button:active, .choice-card:active { transform: none !important; }
+}
 input, textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
 textarea { resize: vertical; }
 h1, h2, h3 { margin: 0; }
@@ -71,7 +90,10 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .choice legend { font-weight: 700; margin-bottom: 8px; }
 .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
 .choice-card { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; cursor: pointer; }
-.choice-card input { display: none; }
+/* The radio stays in the page for keyboard and screen readers; the card shows its state. */
+.choice-card input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.choice-card { position: relative; }
+.choice-card:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .choice-card span { font-size: 13px; color: var(--muted); }
 .choice-card.selected { border-color: var(--accent); background: var(--accent-soft); }
 .choice-card.disabled { opacity: 0.5; cursor: not-allowed; }
@@ -95,6 +117,16 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .editor { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr; }
 .topbar { display: flex; align-items: center; gap: 14px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .topbar .name { flex: 1; min-width: 160px; font-weight: 700; font-size: 17px; border-color: transparent; background: transparent; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.more-menu { position: relative; }
+.more-menu summary { list-style: none; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; background: var(--panel); }
+.more-menu summary::-webkit-details-marker { display: none; }
+.more-menu[open] summary { border-color: var(--accent); }
+.more-menu-list { position: absolute; left: 0; top: calc(100% + 6px); z-index: 10; display: grid; gap: 6px; min-width: 180px; padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.18); }
+.more-menu-list button { text-align: left; justify-content: flex-start; }
+.create-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.create-actions .primary { flex: 1; }
+.overlay-toggles { display: flex; gap: 16px; flex-wrap: wrap; }
 .theme-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 5px 10px; }
 .save-state { color: var(--muted); font-size: 13px; }
 .workspace { display: grid; grid-template-columns: 230px minmax(280px, 400px) minmax(300px, 1fr); gap: 18px; padding: 18px 20px; align-items: start; }
@@ -103,7 +135,7 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .scene-item small { color: var(--muted); }
 .scene-item.selected { border-color: var(--accent); background: var(--accent-soft); }
 .add-step { border-style: dashed; color: var(--accent); }
-.badge { justify-self: start; font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--line); color: var(--muted); }
+.badge { justify-self: start; font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--line); color: var(--text); }
 .badge.ok { background: var(--accent-soft); color: var(--accent); }
 .badge.warn { background: var(--warn-soft); color: var(--warn); }
 .stage { display: grid; gap: 10px; position: sticky; top: 18px; }
@@ -111,8 +143,8 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .mode-toggle button.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 .player-frame { background: #000; border-radius: 12px; width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; }
 .side { display: grid; gap: 16px; }
-.inspector, .voice-panel, .music-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
-.voice-panel header, .music-panel header { display: flex; justify-content: space-between; align-items: center; }
+.inspector, .voice-panel, .music-panel, .brand-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+.voice-panel header, .music-panel header, .brand-panel header { display: flex; justify-content: space-between; align-items: center; }
 .look-strip { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; display: grid; gap: 8px; min-width: 0; }
 .look-tiles { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
 .look-tile { flex: 0 0 auto; width: 104px; padding: 6px; display: grid; gap: 2px; justify-items: center; text-align: center; scroll-snap-align: start; border-width: 1.5px; }
@@ -151,7 +183,7 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .brand-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .step-picture { max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; border: 1px solid var(--line); justify-self: start; }
 .logo-preview { height: 40px; max-width: 120px; object-fit: contain; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); }
-.music-panel { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; box-sizing: border-box; }
+.music-panel, .brand-panel { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; box-sizing: border-box; }
 .music-panel .clip small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slider input { width: 100%; }
 .voice-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -169,10 +201,22 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
   .workspace { grid-template-columns: 1fr; padding: 16px; }
   .stage { position: static; }
   .scene-list { grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; }
+  /* Touch: every control is at least 44px tall, and the topbar keeps to two rows. */
+  button, summary, .more-menu summary, .choice-card, .toggle, .lock, select, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { min-height: 44px; }
+  .toggle input, .lock input { width: 20px; height: 20px; }
+  .undo-redo button { min-width: 44px; }
+  .doodle { width: 44px; height: 44px; }
+  .topbar { padding: 8px 16px; gap: 8px; }
+  .topbar .name { flex: 1 1 0; min-width: 0; }
+  .topbar-actions { width: 100%; margin-left: 0; min-width: 0; }
+  .topbar-actions .render-bar { margin-left: auto; min-width: 0; gap: 8px; }
+  .render-bar .primary { white-space: nowrap; padding: 10px 14px; }
+  .download { display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; }
+  .editor { grid-template-columns: minmax(0, 1fr); }
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--muted, #8a8f98);
-  opacity: 0.7;
+  color: var(--muted);
+  opacity: 1;
 }

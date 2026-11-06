@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CreateOptions } from "../../../shared/project";
-import { sceneIdsOf } from "../../../shared/toReel";
+import { sceneIdsOf, sceneLabel } from "../../../shared/toReel";
+import { voiceEveryScene } from "../createVoices";
+import { leaveNotice } from "../notice";
 import { DEFAULT_LOOK, LOOKS } from "../../../../src/looks";
 import { LOOK_IDS } from "../../../../src/looks/types";
 import { api, type ProjectSummary } from "../api";
@@ -35,6 +37,7 @@ export const CreatePage = () => {
   const [projects, setProjects] = useState<readonly ProjectSummary[]>([]);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stoppable, setStoppable] = useState(false);
   // Until the user picks a voiceover, it follows the language and the running services.
   const [voiceChosen, setVoiceChosen] = useState(false);
   const [lookSource, setLookSource] = useState<LookSource>({ kind: "ai" });
@@ -42,9 +45,21 @@ export const CreatePage = () => {
   // The AI can only pick a look while it writes the plan.
   const aiPicks = lookSource.kind === "ai" && options.planMode === "ai";
 
-  useEffect(() => {
-    api.list().then(setProjects).catch(() => setProjects([]));
-  }, []);
+  // The reel list says when it could not load, so an empty list never hides a server problem.
+  const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
+  const loadList = () => {
+    setListState("loading");
+    api
+      .list()
+      .then((list) => {
+        setProjects(list);
+        setListState("ready");
+      })
+      .catch(() => setListState("error"));
+  };
+  useEffect(loadList, []);
+  // Set by the Stop button; voicing checks it before each scene.
+  const stopRef = useRef(false);
 
   useEffect(() => {
     if (!status || voiceChosen) return;
@@ -69,16 +84,27 @@ export const CreatePage = () => {
       const mode = options.voiceMode;
       // A manual plan starts with empty narration, so there is nothing to speak yet.
       if (options.planMode === "ai" && (mode === "eleven" || mode === "omnivoice")) {
-        const ids = sceneIdsOf(project.plan);
-        for (const [i, sceneId] of ids.entries()) {
-          setProgress(`Generating voice ${i + 1} of ${ids.length}...`);
-          await api.generateVoice(project.id, sceneId, mode);
+        stopRef.current = false;
+        setStoppable(true);
+        const run = await voiceEveryScene(sceneIdsOf(project.plan), {
+          generate: (sceneId) => api.generateVoice(project.id, sceneId, mode),
+          onProgress: (done, total) => setProgress(`Generating voice ${done} of ${total}...`),
+          stopped: () => stopRef.current,
+        });
+        // The reel exists either way, so it opens in the editor, where missing voices can be retried.
+        if (run.failed.length) {
+          const names = run.failed.map((f) => sceneLabel(f.sceneId)).join(", ");
+          leaveNotice(`Voice failed for ${names}: ${run.failed[0].message}. Generate it again from the Voiceover panel.`);
+        } else if (run.stopped) {
+          leaveNotice("Voicing stopped. Scenes marked No voice can be generated from the Voiceover panel.");
         }
       }
       navigate(project.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setProgress(null);
+    } finally {
+      setStoppable(false);
     }
   };
 
@@ -238,13 +264,40 @@ export const CreatePage = () => {
           </label>
         </div>
 
-        {error ? <p className="error">{error}</p> : null}
-        <button className="primary" disabled={busy || prompt.trim().length < 3} onClick={create}>
-          {progress ?? "Create reel"}
-        </button>
+        {error ? (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <div className="create-actions">
+          <button className="primary" disabled={busy || prompt.trim().length < 3} onClick={create} aria-busy={busy}>
+            {busy ? <span className="spinner" aria-hidden="true" /> : null}
+            {progress ?? "Create reel"}
+          </button>
+          {stoppable ? (
+            <button type="button" onClick={() => (stopRef.current = true)} title="Stop after the current voice and open the editor">
+              Stop and open editor
+            </button>
+          ) : null}
+        </div>
+        <p className="sr-only" aria-live="polite">
+          {progress ?? ""}
+        </p>
       </section>
 
-      {projects.length ? (
+      {listState === "error" ? (
+        <section className="panel">
+          <h2>Your reels</h2>
+          <p className="error" role="alert">
+            Could not load your reels. Check that the app server is running.{" "}
+            <button type="button" className="link" onClick={loadList}>
+              Try again
+            </button>
+          </p>
+        </section>
+      ) : null}
+      {listState === "loading" ? <p className="hint">Loading your reels...</p> : null}
+      {listState === "ready" && projects.length ? (
         <section className="panel">
           <h2>Your reels</h2>
           <ul className="project-list">
