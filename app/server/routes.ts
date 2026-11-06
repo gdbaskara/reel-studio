@@ -11,7 +11,7 @@ import { whisperSetup } from "./captions/whisper";
 import { manualPlan, planWithAi, type PlannerReply } from "./planner";
 import { isRendering, startRender, videoPath } from "./render";
 import { withProjectLock } from "./lock";
-import { getProject, listProjects, newProjectId, saveProject, writeRender } from "./store";
+import { getProject, listProjects, newProjectId, saveProject, writeRender, deleteProject } from "./store";
 import { DEFAULT_OMNIVOICE_URL, generateVoice, importUpload, withDefaultVoice } from "./voice";
 import { audioInUse, pruneAudio, releasePending } from "./audioFiles";
 import { importMusic, musicFileName } from "./music";
@@ -290,6 +290,14 @@ export const apiRouter = (): Router => {
   api.post("/projects/:id/duplicate", async (req, res) => {
     const { id } = params(req);
     res.status(201).json(await withProjectLock(id, () => duplicateProject(id)));
+  });
+
+  // Deletes a reel for good. A reel that is rendering is left alone until the render ends.
+  api.delete("/projects/:id", async (req, res) => {
+    const { id } = params(req);
+    if (isRendering(id)) throw new HttpError(409, "This reel is rendering. Delete it once the render is done.");
+    await withProjectLock(id, () => deleteProject(id));
+    res.status(204).end();
   });
 
   // Draws a new illustration for one step from the text the editor sends. Nothing is saved:

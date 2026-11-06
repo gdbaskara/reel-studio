@@ -1,50 +1,65 @@
+/* Studio editorial: warm paper and ink, one brick-red accent like an editor's stamp, and a
+   yellow highlighter (--marker) used the way the reels highlight words. All text pairs pass WCAG AA. */
 :root {
-  --bg: #f5f6f4;
-  --panel: #ffffff;
-  --text: #1c1f1d;
-  --muted: #6b716d;
-  --line: #e1e4e0;
-  --accent: #077a52;
-  --accent-soft: #e3f3ec;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg: #f4efe6;
+  --panel: #fbf8f2;
+  --text: #1f1b16;
+  --muted: #6b6258;
+  --line: #e3dccf;
+  --accent: #b13f22;
+  --accent-soft: #f8e3da;
   --on-accent: #ffffff;
-  --warn: #8a5300;
-  --warn-soft: #fff3dc;
-  --danger: #c2412d;
+  --warn: #7a4a00;
+  --warn-soft: #fbefc8;
+  --danger: #9c2f1a;
+  --marker: #f3d36b;
+  /* The hard offset shadow of a printed frame, used only on the video previews. */
+  --print: #1f1b16;
   color-scheme: light;
 }
 /* Dark follows the system unless Light is picked; the toggle can also force Dark (see theme.ts). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121413;
-    --panel: #1b1e1c;
-    --text: #e9ece9;
-    --muted: #9aa29d;
-    --line: #2c312e;
-    --accent: #34c38f;
-    --accent-soft: #173327;
-    --on-accent: #0b1f17;
+    --bg: #171513;
+    --panel: #201d1a;
+    --text: #f1ebe1;
+    --muted: #a99f92;
+    --line: #34302b;
+    --accent: #f08a6c;
+    --accent-soft: #3a231c;
+    --on-accent: #1f0f0a;
     --warn: #f0b04a;
     --warn-soft: #33270f;
-    --danger: #ef7a66;
+    --danger: #ff9a85;
+    --marker: #6b5a1e;
+    --print: #000000;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121413;
-  --panel: #1b1e1c;
-  --text: #e9ece9;
-  --muted: #9aa29d;
-  --line: #2c312e;
-  --accent: #34c38f;
-  --accent-soft: #173327;
-  --on-accent: #0b1f17;
+  --bg: #171513;
+  --panel: #201d1a;
+  --text: #f1ebe1;
+  --muted: #a99f92;
+  --line: #34302b;
+  --accent: #f08a6c;
+  --accent-soft: #3a231c;
+  --on-accent: #1f0f0a;
   --warn: #f0b04a;
   --warn-soft: #33270f;
-  --danger: #ef7a66;
+  --danger: #ff9a85;
+  --marker: #6b5a1e;
+  --print: #000000;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 var(--font-ui); }
+/* Headings speak in the editorial serif; everything you operate stays in the plain UI face. */
+h1, h2, legend, .topbar .name { font-family: var(--font-display); font-optical-sizing: auto; }
+h1 { font-size: 40px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.05; }
+h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 12px; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
@@ -71,7 +86,18 @@ summary { cursor: pointer; }
 input, textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
 textarea { resize: vertical; }
 h1, h2, h3 { margin: 0; }
-h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+/* Section labels: sentence case in the serif's italic, with a highlighter stroke behind, the same
+   gesture the reels use to mark a word. It is the one motif that repeats across every panel. */
+h3 {
+  justify-self: start;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  background: linear-gradient(transparent 58%, var(--marker) 58%, var(--marker) 92%, transparent 92%);
+  padding: 0 4px;
+}
 
 .loading { padding: 40px; color: var(--muted); }
 .error { color: var(--danger); margin: 8px 0; }
@@ -80,14 +106,36 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .hint.warn { color: var(--warn); }
 
 /* Create page */
-.create { max-width: 860px; margin: 0 auto; padding: 32px 16px 60px; display: grid; gap: 20px; }
+.create { max-width: 1140px; margin: 0 auto; padding: 32px 16px 60px; display: grid; gap: 24px; }
+/* The form and, beside it, the reel it will make: the preview is the page's focal point. */
+.create-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+.create-aside { position: sticky; top: 24px; }
+.create-preview { margin: 0; display: grid; gap: 10px; }
+.create-preview figcaption { display: grid; gap: 2px; }
+.create-preview figcaption strong { font-family: var(--font-display); font-size: 20px; }
+.create-preview figcaption span { color: var(--muted); font-size: 13px; }
+.preview-print, .reel-thumb { border: 2px solid var(--print); box-shadow: 6px 6px 0 var(--print); border-radius: 10px; overflow: hidden; }
+.look-pick { display: grid; gap: 10px; }
+.look-pick .look-strip { width: 100%; margin: 0; }
+.reels h2 { margin-bottom: 4px; }
+.reel-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 22px; }
+.reel-card { display: grid; gap: 6px; align-content: start; }
+.reel-open { display: grid; gap: 8px; color: var(--text); text-decoration: none; }
+.reel-open strong { font-family: var(--font-display); font-size: 17px; line-height: 1.2; }
+.reel-open:hover strong { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+.reel-open:hover .reel-thumb { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--print); }
+.reel-thumb { transition: transform 0.12s, box-shadow 0.12s; }
+.reel-meta { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; }
+.reel-actions { display: flex; gap: 6px; }
+.reel-actions button { padding: 5px 10px; font-size: 13px; }
+.reel-search { max-width: 320px; }
 .brand-row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brand p { color: var(--muted); margin: 6px 0 0; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 18px; }
 .field { display: grid; gap: 6px; }
 .field > span { font-size: 13px; font-weight: 600; color: var(--muted); }
 .choice { border: none; padding: 0; margin: 0; min-width: 0; }
-.choice legend { font-weight: 700; margin-bottom: 8px; }
+.choice legend { font-size: 19px; font-weight: 600; margin-bottom: 8px; }
 .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
 .choice-card { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; cursor: pointer; }
 /* The radio stays in the page for keyboard and screen readers; the card shows its state. */
@@ -143,7 +191,7 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .mode-toggle button.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 /* The player is sized to fit the screen with the timeline under it, so the column stays sticky
    and the preview never scrolls away while the panels on the right are edited. */
-.player-frame { background: #000; border-radius: 12px; width: calc((100vh - 230px) * 9 / 16); min-width: 260px; margin: 0 auto; }
+.player-frame { background: #000; border-radius: 12px; width: calc((100vh - 230px) * 9 / 16); min-width: 260px; margin: 0 auto; border: 2px solid var(--print); box-shadow: 6px 6px 0 var(--print); }
 .player-frame.over-text { cursor: text; }
 .player-frame [data-edit][data-hover] { outline: 6px dashed var(--accent); outline-offset: 14px; border-radius: 12px; }
 .stage-hint { margin: 0; text-align: center; }
@@ -217,6 +265,10 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 
 @media (max-width: 900px) {
   .row { grid-template-columns: 1fr; }
+  .create-layout { grid-template-columns: 1fr; }
+  /* On a phone the preview comes first, kept small, so the form starts right under it. */
+  .create-aside { position: static; order: -1; max-width: 220px; justify-self: center; }
+  h1 { font-size: 32px; }
   .workspace { grid-template-columns: 1fr; padding: 16px; }
   .stage { position: static; }
   .player-frame { width: min(100%, 420px); min-width: 0; }
