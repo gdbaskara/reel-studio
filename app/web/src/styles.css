@@ -129,7 +129,7 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .overlay-toggles { display: flex; gap: 16px; flex-wrap: wrap; }
 .theme-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 5px 10px; }
 .save-state { color: var(--muted); font-size: 13px; }
-.workspace { display: grid; grid-template-columns: 230px minmax(280px, 400px) minmax(300px, 1fr); gap: 18px; padding: 18px 20px; align-items: start; }
+.workspace { display: grid; grid-template-columns: 220px auto minmax(340px, 1fr); gap: 18px; padding: 18px 20px; align-items: start; }
 .scene-list { display: grid; gap: 8px; }
 .scene-item { text-align: left; display: grid; gap: 2px; padding: 10px 12px; }
 .scene-item small { color: var(--muted); }
@@ -141,7 +141,24 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .stage { display: grid; gap: 10px; position: sticky; top: 18px; }
 .mode-toggle { display: flex; gap: 6px; }
 .mode-toggle button.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
-.player-frame { background: #000; border-radius: 12px; width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; }
+/* The player is sized to fit the screen with the timeline under it, so the column stays sticky
+   and the preview never scrolls away while the panels on the right are edited. */
+.player-frame { background: #000; border-radius: 12px; width: calc((100vh - 230px) * 9 / 16); min-width: 260px; margin: 0 auto; }
+.player-frame.over-text { cursor: text; }
+.player-frame [data-edit][data-hover] { outline: 6px dashed var(--accent); outline-offset: 14px; border-radius: 12px; }
+.stage-hint { margin: 0; text-align: center; }
+.timeline { position: relative; display: flex; gap: 3px; height: 46px; }
+.timeline-block { flex: 1 1 0; min-width: 0; padding: 4px 6px; display: grid; align-content: center; gap: 0; text-align: left; border-radius: 6px; overflow: hidden; }
+.timeline-block span { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.timeline-block small { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.timeline-block.selected { border-color: var(--accent); background: var(--accent-soft); }
+.timeline-block.playing { box-shadow: inset 0 -3px 0 var(--accent); }
+.playhead { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); pointer-events: none; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs button { border: none; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; background: none; font-weight: 600; padding: 8px 14px; }
+.tabs button.selected { border-bottom-color: var(--accent); color: var(--accent); }
+.tab-panel { display: grid; gap: 16px; }
+.tab-panel .look-strip, .tab-panel .restyle, .tab-panel .look-tools, .tab-panel .music-panel, .tab-panel .brand-panel { width: 100%; }
 .side { display: grid; gap: 16px; }
 .inspector, .voice-panel, .music-panel, .brand-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
 .voice-panel header, .music-panel header, .brand-panel header { display: flex; justify-content: space-between; align-items: center; }
@@ -202,6 +219,8 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
   .row { grid-template-columns: 1fr; }
   .workspace { grid-template-columns: 1fr; padding: 16px; }
   .stage { position: static; }
+  .player-frame { width: min(100%, 420px); min-width: 0; }
+  .tabs button { flex: 1; }
   .scene-list { grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; }
   /* Touch: every control is at least 44px tall, and the topbar keeps to two rows. */
   button, summary, .more-menu summary, .choice-card, .toggle, .lock, select, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { min-height: 44px; }

@@ -39,10 +39,10 @@ const Center = ({ step, number }: Omit<Props, "duration">) => {
     <>
       <NumberBadge number={number} />
       <Wobble seed={`step-${number}`}>
-        <PopWords text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} />
+        <PopWords edit={`step-${number}:title`} text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} />
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} /> : null}
-      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
+      {step.note.trim() ? <Note edit={`step-${number}:note`} text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
       <StepVisual step={step} width={ART_WIDTH} />
     </>
   );
@@ -55,10 +55,10 @@ const Left = ({ step, number }: Omit<Props, "duration">) => {
     <div style={{ alignSelf: "stretch", flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
       <NumberBadge number={number} />
       <Wobble seed={`step-${number}`}>
-        <PopWords text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} align="left" />
+        <PopWords edit={`step-${number}:title`} text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} align="left" />
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} align="left" /> : null}
-      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} align="left" flip={number % 2 === 0} /> : null}
+      {step.note.trim() ? <Note edit={`step-${number}:note`} text={step.note} delay={motion.delays.stepNote} align="left" flip={number % 2 === 0} /> : null}
       <StepVisual step={step} width={ART_WIDTH} />
     </div>
   );
@@ -90,10 +90,10 @@ const BigNumber = ({ step, number }: Omit<Props, "duration">) => {
         {String(number).padStart(2, "0")}
       </div>
       <Wobble seed={`step-${number}`}>
-        <PopWords text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} />
+        <PopWords edit={`step-${number}:title`} text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} />
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} /> : null}
-      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
+      {step.note.trim() ? <Note edit={`step-${number}:note`} text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
       {step.art && !step.image ? <Illustration art={step.art} delay={motion.delays.stepDoodle} width={ART_WIDTH} height={ART_HEIGHT_BIG_NUMBER} /> : null}
     </>
   );

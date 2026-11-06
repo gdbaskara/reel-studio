@@ -24,11 +24,11 @@ const Center = ({ outro }: { readonly outro: Outro }) => {
       <Wobble seed="outro">
         <div style={{ position: "relative", padding: "40px 0", ...(decoration === "clean" ? { isolation: "isolate" } : {}) }}>
           {decoration === "clean" ? mark : null}
-          <PopWords text={outro.main} fontSize={type.outroMain} delay={motion.delays.outroMain} color={palette.accent} />
+          <PopWords edit="outro:main" text={outro.main} fontSize={type.outroMain} delay={motion.delays.outroMain} color={palette.accent} />
           {decoration === "scribble" ? mark : null}
         </div>
         <div style={{ marginTop: 120 }}>
-          <PopWords text={outro.sub} fontSize={type.outroSub} delay={motion.delays.outroSub} />
+          <PopWords edit="outro:sub" text={outro.sub} fontSize={type.outroSub} delay={motion.delays.outroSub} />
         </div>
       </Wobble>
     </>
@@ -42,11 +42,11 @@ const Left = ({ outro }: { readonly outro: Outro }) => {
     <div style={{ alignSelf: "stretch", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
       <div style={{ height: 300 }} />
       <Wobble seed="outro">
-        <PopWords text={outro.main} fontSize={type.outroMain} delay={motion.delays.outroMain} color={palette.accent} align="left" />
+        <PopWords edit="outro:main" text={outro.main} fontSize={type.outroMain} delay={motion.delays.outroMain} color={palette.accent} align="left" />
         <div style={{ margin: "20px 0 60px", alignSelf: "stretch" }}>
           <TitleMark delay={motion.delays.outroMark} align="left" />
         </div>
-        <PopWords text={outro.sub} fontSize={type.outroSub} delay={motion.delays.outroSub} align="left" />
+        <PopWords edit="outro:sub" text={outro.sub} fontSize={type.outroSub} delay={motion.delays.outroSub} align="left" />
       </Wobble>
     </div>
   );
@@ -76,9 +76,9 @@ const Card = ({ outro }: { readonly outro: Outro }) => {
           opacity: Math.min(1, pop * 1.5),
         }}
       >
-        <PopWords text={outro.main} fontSize={type.outroMain} delay={motion.delays.outroMain} color={palette.onAccent} width={inner} />
+        <PopWords edit="outro:main" text={outro.main} fontSize={type.outroMain} delay={motion.delays.outroMain} color={palette.onAccent} width={inner} />
         <div style={{ marginTop: 50, opacity: 0.9 }}>
-          <PopWords text={outro.sub} fontSize={Math.round(type.outroSub * 0.8)} delay={motion.delays.outroSub} color={palette.onAccent} width={inner} />
+          <PopWords edit="outro:sub" text={outro.sub} fontSize={Math.round(type.outroSub * 0.8)} delay={motion.delays.outroSub} color={palette.onAccent} width={inner} />
         </div>
       </div>
     </>

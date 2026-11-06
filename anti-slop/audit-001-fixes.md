@@ -50,3 +50,21 @@ Catatan:
 - Reel lama juga ikut berubah saat dirender ulang (posisi tengah, zoom pelan, doodle mengambang, denyut kata, note bergantian). Layout bervariasi dan doodle yang lebih cocok hanya otomatis untuk reel baru; reel lama bisa memakai Shuffle atau memilih layout per step.
 - Notebook sengaja tidak lagi sama pixel per pixel dengan versi lama, karena memang komposisinya yang diperbaiki.
 - Tes: 222 lulus, `tsc` bersih. Editor dicek di browser: preview jalan, picker menampilkan 11 doodle, tidak ada error console yang berhubungan.
+
+Tambahan di luar audit (PR #14): ilustrasi per step yang digambar Claude, dengan isian warna, dan pilihan background (bawaan look, pola, motif topik, atau gambar upload).
+
+## Batch 3 (branch `fix/audit-batch-3`): editor interaktif
+
+Nomor yang dikerjakan: 12, 14.
+
+| # | Status | Yang berubah | Bukti |
+|---|--------|--------------|-------|
+| 12 | Selesai | Kolom tengah hanya berisi player dan timeline, ukurannya pas satu layar dan sticky. Panel kanan jadi tab Scene, Style, dan Music (tab bisa dipakai dengan panah, Home, dan End) | Desktop 1440x900: player 131-801px dan timeline berakhir di 857px, jadi tetap terlihat. Panah kanan pindah ke tab Style |
+| 14 | Selesai | Timeline adegan di bawah player: lebar blok sesuai durasi, klik untuk memilih. Di mode Whole video ada playhead, adegan yang sedang diputar menyala, dan klik blok melompat ke adegan itu. Teks di preview bisa diklik: garis putus-putus muncul saat hover, lalu klik memilih adegannya, membuka tab Scene, dan memfokuskan kolomnya | Klik "Meet the game" memfokuskan `edit-title-lead`. Klik blok 3 di Whole video memindahkan playhead ke blok 3 dan inspector ke step 3 |
+
+Catatan:
+- Player tidak lagi play/pause saat gambarnya diklik, karena klik dipakai untuk edit. Play tetap lewat tombol kontrol dan spasi.
+- Penanda `data-edit` di teks adegan hanya atribut HTML, jadi tidak mengubah hasil render.
+- Render MP4 penuh dari salinan Mahjong berhasil: 43.7 detik, 1080x1920, dengan ilustrasi dan background motif.
+- Mobile 375px: tanpa overflow, semua kontrol minimal 44px.
+- Tes: 246 lulus, `tsc` bersih.

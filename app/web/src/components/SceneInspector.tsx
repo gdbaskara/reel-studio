@@ -4,6 +4,7 @@ import { DoodlePicker } from "./DoodlePicker";
 import { LayoutPicker, OUTRO_CHOICES, STEP_CHOICES, TITLE_CHOICES } from "./LayoutPicker";
 import { StepPicture } from "./StepPicture";
 import { StepArt } from "./StepArt";
+import { inputIdFor } from "../editTarget";
 
 type Props = {
   readonly plan: Plan;
@@ -18,12 +19,13 @@ type Props = {
   readonly onDrawArt: () => void;
 };
 
-type TextProps = { label: string; value: string; max: number; hint: string; onChange: (v: string) => void };
+// id lets a click on this text in the preview focus the field (see editTarget).
+type TextProps = { id: string; label: string; value: string; max: number; hint: string; onChange: (v: string) => void };
 
-const Text = ({ label, value, max, hint, onChange }: TextProps) => (
+const Text = ({ id, label, value, max, hint, onChange }: TextProps) => (
   <label className="field">
     <span>{label}</span>
-    <input value={value} maxLength={max} placeholder={hint} onChange={(e) => onChange(e.target.value)} />
+    <input id={id} value={value} maxLength={max} placeholder={hint} onChange={(e) => onChange(e.target.value)} />
   </label>
 );
 
@@ -40,15 +42,15 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
       <p className="hint">{hints.emphasis}</p>
       {sceneId === "title" ? (
         <>
-          <Text label="Small line" value={plan.title.lead} max={40} hint={hints.titleLead} onChange={(lead) => onChange((p) => ({ ...p, title: { ...p.title, lead } }))} />
-          <Text label="Big line" value={plan.title.main} max={40} hint={hints.titleMain} onChange={(main) => onChange((p) => ({ ...p, title: { ...p.title, main } }))} />
+          <Text id={inputIdFor("title", "lead")} label="Small line" value={plan.title.lead} max={40} hint={hints.titleLead} onChange={(lead) => onChange((p) => ({ ...p, title: { ...p.title, lead } }))} />
+          <Text id={inputIdFor("title", "main")} label="Big line" value={plan.title.main} max={40} hint={hints.titleMain} onChange={(main) => onChange((p) => ({ ...p, title: { ...p.title, main } }))} />
           <LayoutPicker choices={TITLE_CHOICES} value={plan.title.layout ?? "center"} onChange={(layout) => onChange((p) => ({ ...p, title: { ...p.title, layout } }))} />
         </>
       ) : null}
       {step ? (
         <>
-          <Text label="Step title" value={step.title} max={60} hint={hints.stepTitle} onChange={(title) => setStep({ title })} />
-          <Text label="Sticky note" value={step.note} max={120} hint={hints.stepNote} onChange={(note) => setStep({ note })} />
+          <Text id={inputIdFor("step", "title")} label="Step title" value={step.title} max={60} hint={hints.stepTitle} onChange={(title) => setStep({ title })} />
+          <Text id={inputIdFor("step", "note")} label="Sticky note" value={step.note} max={120} hint={hints.stepNote} onChange={(note) => setStep({ note })} />
           <LayoutPicker choices={STEP_CHOICES} value={step.layout ?? "center"} onChange={(layout) => setStep({ layout })} />
           {step.image ? null : (
             <StepArt
@@ -74,8 +76,8 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
       ) : null}
       {sceneId === "outro" ? (
         <>
-          <Text label="Big line" value={plan.outro.main} max={40} hint={hints.outroMain} onChange={(main) => onChange((p) => ({ ...p, outro: { ...p.outro, main } }))} />
-          <Text label="Small line" value={plan.outro.sub} max={60} hint={hints.outroSub} onChange={(sub) => onChange((p) => ({ ...p, outro: { ...p.outro, sub } }))} />
+          <Text id={inputIdFor("outro", "main")} label="Big line" value={plan.outro.main} max={40} hint={hints.outroMain} onChange={(main) => onChange((p) => ({ ...p, outro: { ...p.outro, main } }))} />
+          <Text id={inputIdFor("outro", "sub")} label="Small line" value={plan.outro.sub} max={60} hint={hints.outroSub} onChange={(sub) => onChange((p) => ({ ...p, outro: { ...p.outro, sub } }))} />
           <LayoutPicker choices={OUTRO_CHOICES} value={plan.outro.layout ?? "center"} onChange={(layout) => onChange((p) => ({ ...p, outro: { ...p.outro, layout } }))} />
         </>
       ) : null}
