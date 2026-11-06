@@ -18,8 +18,8 @@ export const RenderBar = ({ project, busy, onRender, onReset }: Props) => {
         </button>
       )}
       {status === "done" ? (
-        <a className="download" href={api.videoUrl(project.id, updatedAt)}>
-          Download video
+        <a className="download" href={api.videoUrl(project.id, updatedAt)} title="Download the rendered MP4">
+          Download
         </a>
       ) : null}
       {status === "error" ? (

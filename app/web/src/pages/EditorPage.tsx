@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { takeNotice } from "../notice";
+import { MoreMenu } from "../components/MoreMenu";
 import { sceneIdsOf } from "../../../shared/toReel";
 import { navigate } from "../App";
 import { useProjectEditor } from "../useProjectEditor";
@@ -34,6 +36,12 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const { status, omnivoiceVoices } = useServices();
   const saved = useSavedStyles();
   useUndoKeys(editor.undo, editor.redo);
+  // A message from the create page, such as which voices failed.
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    const message = takeNotice();
+    if (message) setNotice(message);
+  }, []);
 
   const { project, preview, style } = editor;
   const shown = useMemo(() => {
@@ -64,7 +72,6 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
           onChange={(e) => editor.updatePlan((p) => ({ ...p, name: e.target.value }))}
           aria-label="Reel name"
         />
-        <span className="save-state">{editor.saving ? "Saving..." : "Saved"}</span>
         <span className="undo-redo">
           <button type="button" disabled={!editor.canUndo} onClick={editor.undo} title="Undo (Cmd+Z)" aria-label="Undo">
             &#8630;
@@ -73,24 +80,32 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             &#8631;
           </button>
         </span>
-        <label className="toggle">
-          <input type="checkbox" checked={style.captions} onChange={(e) => editor.setStyle({ ...style, captions: e.target.checked })} />
-          Captions
-        </label>
-        <label className="toggle">
-          <input type="checkbox" checked={style.progressBar} onChange={(e) => editor.setStyle({ ...style, progressBar: e.target.checked })} />
-          Progress bar
-        </label>
-        <button disabled={editor.busy.has("duplicate")} onClick={() => editor.duplicate((copy) => navigate(copy.id))} title="Make a copy of this reel to use as a template">
-          Duplicate
-        </button>
-        <ThemeToggle />
-        <RenderBar project={project} busy={editor.busy.size > 0} onRender={editor.render} onReset={editor.resetRender} />
+        <div className="topbar-actions">
+          <span className="save-state" aria-live="polite">
+            {editor.saving ? "Saving..." : "Saved"}
+          </span>
+          <MoreMenu>
+            <button disabled={editor.busy.has("duplicate")} onClick={() => editor.duplicate((copy) => navigate(copy.id))} title="Make a copy of this reel to use as a template">
+              Duplicate reel
+            </button>
+            <ThemeToggle />
+          </MoreMenu>
+          <RenderBar project={project} busy={editor.busy.size > 0} onRender={editor.render} onReset={editor.resetRender} />
+        </div>
       </header>
 
-      {editor.error ? (
-        <p className="error banner">
-          {editor.error} <button className="link" onClick={editor.dismissError}>Dismiss</button>
+      {editor.error || notice ? (
+        <p className="error banner" role="alert">
+          {editor.error ?? notice}{" "}
+          <button
+            className="link"
+            onClick={() => {
+              editor.dismissError();
+              setNotice(null);
+            }}
+          >
+            Dismiss
+          </button>
         </p>
       ) : null}
 
@@ -118,6 +133,16 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             }}
           />
           <div className="look-tools">
+            <div className="overlay-toggles" role="group" aria-label="On the video">
+              <label className="toggle">
+                <input type="checkbox" checked={style.captions} onChange={(e) => editor.setStyle({ ...style, captions: e.target.checked })} />
+                Captions
+              </label>
+              <label className="toggle">
+                <input type="checkbox" checked={style.progressBar} onChange={(e) => editor.setStyle({ ...style, progressBar: e.target.checked })} />
+                Progress bar
+              </label>
+            </div>
             <TransitionChips style={style} onChange={(transition) => editor.setStyle({ ...style, transition })} />
             <TunePanel tune={style.tune} onChange={(tune) => editor.setStyle({ ...style, tune })} />
             <ShuffleBar style={style} canUndo={editor.canUndoShuffle} onShuffle={editor.shuffle} onUndo={editor.undoShuffle} />

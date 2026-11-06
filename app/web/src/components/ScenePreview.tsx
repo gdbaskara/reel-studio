@@ -4,6 +4,7 @@ import type { Project } from "../../../shared/project";
 import { toReelProps } from "../../../shared/toReel";
 import { Reel, SingleScene } from "../../../../src/Reel";
 import { buildScenes, FPS, totalFrames } from "../../../../src/timeline";
+import { posterFrame } from "../poster";
 
 type Props = { readonly project: Project; readonly sceneIndex: number; readonly mode: "scene" | "full" };
 
@@ -19,14 +20,16 @@ export const ScenePreview = ({ project, sceneIndex, mode }: Props) => {
     acknowledgeRemotionLicense: true,
   } as const;
 
+  // The paused player opens on a settled frame; frame 0 is still empty paper before the entrances.
   return mode === "full" ? (
-    <Player key="full" component={Reel} inputProps={props} durationInFrames={totalFrames(scenes)} {...shared} />
+    <Player key="full" component={Reel} inputProps={props} durationInFrames={totalFrames(scenes)} initialFrame={posterFrame(scenes[0]?.frames ?? 1)} {...shared} />
   ) : (
     <Player
       key={`scene-${sceneIndex}`}
       component={SingleScene}
       inputProps={{ ...props, sceneIndex }}
       durationInFrames={scenes[sceneIndex]?.frames ?? 1}
+      initialFrame={posterFrame(scenes[sceneIndex]?.frames ?? 1)}
       {...shared}
     />
   );
