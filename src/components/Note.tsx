@@ -21,9 +21,10 @@ const enter = (from: "right" | "bottom" | "fade", t: number, side: number) =>
 
 // The short detail under a step title. Text without *emphasis* is drawn exactly as typed.
 // flip mirrors the tilt and the side it slides in from, so neighbouring steps do not look alike.
-type NoteProps = { readonly text: string; readonly delay: number; readonly align?: "center" | "left"; readonly flip?: boolean };
+// edit marks it for the editor's click-to-edit, as on PopWords.
+type NoteProps = { readonly text: string; readonly delay: number; readonly align?: "center" | "left"; readonly flip?: boolean; readonly edit?: string };
 
-export const Note = ({ text, delay, align = "center", flip = false }: NoteProps) => {
+export const Note = ({ text, delay, align = "center", flip = false, edit }: NoteProps) => {
   const side = flip ? -1 : 1;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -32,6 +33,7 @@ export const Note = ({ text, delay, align = "center", flip = false }: NoteProps)
   const slide = spring({ frame: frame - delay, fps, config: motion.note });
   return (
     <div
+      data-edit={edit}
       style={{
         marginTop: 50,
         maxWidth: 860,

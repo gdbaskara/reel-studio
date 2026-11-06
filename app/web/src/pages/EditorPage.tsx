@@ -1,4 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import type { PlayerRef } from "@remotion/player";
+import { toReelProps } from "../../../shared/toReel";
+import { buildScenes } from "../../../../src/timeline";
+import { Timeline } from "../components/Timeline";
+import { Tabs } from "../components/Tabs";
+import { editTarget } from "../editTarget";
+import { editableAt, useEditableHover } from "../useEditableHover";
+import { timelineSegments } from "../timelineSegments";
+
+// The right-hand column: the selected scene's text and voice, the reel's look, and its music.
+type Panel = "scene" | "style" | "audio";
+const PANELS: readonly { readonly id: Panel; readonly title: string }[] = [
+  { id: "scene", title: "Scene" },
+  { id: "style", title: "Style" },
+  { id: "audio", title: "Music" },
+];
 import { takeNotice } from "../notice";
 import { MoreMenu } from "../components/MoreMenu";
 import { sceneIdsOf } from "../../../shared/toReel";
@@ -30,6 +46,9 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const editor = useProjectEditor(projectId);
   const [selected, setSelected] = useState(0);
   const [mode, setMode] = useState<"scene" | "full">("scene");
+  const [panel, setPanel] = useState<Panel>("scene");
+  const playerRef = useRef<PlayerRef>(null);
+  const hover = useEditableHover();
   // A look or palette under the mouse, shown on the player but never saved.
   const [hovered, setHovered] = useState<StyleOverride | null>(null);
   // A suggested restyle shown on the player until it is applied or dropped.
@@ -59,6 +78,17 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
   const ids = sceneIdsOf(preview.plan);
   const index = Math.min(selected, ids.length - 1);
   const sceneId = ids[index];
+  const props = toReelProps(shown);
+  const segments = timelineSegments(buildScenes(props.spec, props.voice).map((scene) => ({ id: scene.voiceId, frames: scene.frames })));
+
+  // A click on text in the preview selects its scene, shows the Scene panel and focuses that field.
+  const openClickedText = (e: MouseEvent<HTMLDivElement>) => {
+    const target = editTarget(editableAt(e.clientX, e.clientY)?.dataset.edit, ids);
+    if (!target) return;
+    setSelected(target.sceneIndex);
+    setPanel("scene");
+    window.setTimeout(() => document.getElementById(target.inputId)?.focus(), 0);
+  };
 
   return (
     <main className="editor">
@@ -118,9 +148,46 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             <button className={mode === "scene" ? "selected" : ""} onClick={() => setMode("scene")}>This scene</button>
             <button className={mode === "full" ? "selected" : ""} onClick={() => setMode("full")}>Whole video</button>
           </div>
-          <div className="player-frame">
-            <ScenePreview project={shown} sceneIndex={index} mode={mode} />
+          <div className="player-frame" onClick={openClickedText} {...hover}>
+            <ScenePreview project={shown} sceneIndex={index} mode={mode} playerRef={playerRef} />
           </div>
+          <Timeline segments={segments} selected={index} mode={mode} playerRef={playerRef} onSelect={setSelected} />
+          <p className="hint stage-hint">Click any text on the preview to edit it.</p>
+        </section>
+
+        <aside className="side">
+          <Tabs label="Editor panels" tabs={PANELS} value={panel} onChange={setPanel} />
+          {panel === "scene" ? (
+            <div className="tab-panel" role="tabpanel" id="panel-scene" aria-labelledby="tab-scene">
+              <SceneInspector
+                plan={preview.plan}
+                sceneId={sceneId}
+                language={preview.options.language}
+                onChange={editor.updatePlan}
+                imageBusy={editor.busy.has(`image:${sceneId}`)}
+                onUploadImage={(file) => editor.uploadStepImage(sceneId, file)}
+                onRemoveImage={() => editor.removeStepImage(sceneId)}
+                artBusy={editor.busy.has(`art:${sceneId}`)}
+                onDrawArt={() => editor.drawStepArt(sceneId)}
+                onRemoveStep={() => {
+                  editor.removeStep(index - 1);
+                  setSelected(Math.max(0, index - 1));
+                }}
+              />
+              <VoicePanel
+                project={preview}
+                sceneId={sceneId}
+                status={status}
+                omnivoiceVoices={omnivoiceVoices}
+                busy={editor.busy.has(`voice:${sceneId}`)}
+                onGenerate={(provider, choice) => editor.generateVoice(sceneId, provider, choice)}
+                onUpload={(file) => editor.uploadVoice(sceneId, file)}
+                onRemove={() => editor.removeVoice(sceneId)}
+              />
+            </div>
+          ) : null}
+          {panel === "style" ? (
+            <div className="tab-panel" role="tabpanel" id="panel-style" aria-labelledby="tab-style">
           <LookStrip project={preview} style={style} onPreview={setHovered} onChange={(choice) => editor.setStyle({ ...style, ...choice })} />
           <RestylePanel
             style={style}
@@ -170,42 +237,20 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             onChange={(backdrop) => editor.setStyle({ ...style, backdrop })}
             onUpload={editor.uploadBackdrop}
           />
-          <MusicPanel
-            music={preview.music}
-            settings={style.music}
-            busy={editor.busy.has("music")}
-            onUpload={editor.uploadMusic}
-            onRemove={editor.removeMusic}
-            onChange={editor.setMusic}
-          />
-        </section>
-
-        <aside className="side">
-          <SceneInspector
-            plan={preview.plan}
-            sceneId={sceneId}
-            language={preview.options.language}
-            onChange={editor.updatePlan}
-            imageBusy={editor.busy.has(`image:${sceneId}`)}
-            onUploadImage={(file) => editor.uploadStepImage(sceneId, file)}
-            onRemoveImage={() => editor.removeStepImage(sceneId)}
-            artBusy={editor.busy.has(`art:${sceneId}`)}
-            onDrawArt={() => editor.drawStepArt(sceneId)}
-            onRemoveStep={() => {
-              editor.removeStep(index - 1);
-              setSelected(Math.max(0, index - 1));
-            }}
-          />
-          <VoicePanel
-            project={preview}
-            sceneId={sceneId}
-            status={status}
-            omnivoiceVoices={omnivoiceVoices}
-            busy={editor.busy.has(`voice:${sceneId}`)}
-            onGenerate={(provider, choice) => editor.generateVoice(sceneId, provider, choice)}
-            onUpload={(file) => editor.uploadVoice(sceneId, file)}
-            onRemove={() => editor.removeVoice(sceneId)}
-          />
+            </div>
+          ) : null}
+          {panel === "audio" ? (
+            <div className="tab-panel" role="tabpanel" id="panel-audio" aria-labelledby="tab-audio">
+              <MusicPanel
+                music={preview.music}
+                settings={style.music}
+                busy={editor.busy.has("music")}
+                onUpload={editor.uploadMusic}
+                onRemove={editor.removeMusic}
+                onChange={editor.setMusic}
+              />
+            </div>
+          ) : null}
         </aside>
       </div>
     </main>

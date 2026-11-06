@@ -17,8 +17,8 @@ const Center = ({ title }: { readonly title: Title }) => {
     <>
       <div style={{ height: 220 }} />
       <Wobble seed="title">
-        <PopWords text={title.lead} fontSize={type.titleLead} delay={motion.delays.titleLead} />
-        <PopWords text={title.main} fontSize={type.titleMain} delay={motion.delays.titleMain} color={palette.accent} />
+        <PopWords edit="title:lead" text={title.lead} fontSize={type.titleLead} delay={motion.delays.titleLead} />
+        <PopWords edit="title:main" text={title.main} fontSize={type.titleMain} delay={motion.delays.titleMain} color={palette.accent} />
       </Wobble>
       <div style={{ marginTop: 10 }}>
         <TitleMark delay={motion.delays.titleMark} />
@@ -34,8 +34,8 @@ const Left = ({ title }: { readonly title: Title }) => {
     <div style={{ alignSelf: "stretch", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
       <div style={{ height: 220 }} />
       <Wobble seed="title">
-        <PopWords text={title.lead} fontSize={type.titleLead} delay={motion.delays.titleLead} align="left" />
-        <PopWords text={title.main} fontSize={type.titleMain} delay={motion.delays.titleMain} color={palette.accent} align="left" />
+        <PopWords edit="title:lead" text={title.lead} fontSize={type.titleLead} delay={motion.delays.titleLead} align="left" />
+        <PopWords edit="title:main" text={title.main} fontSize={type.titleMain} delay={motion.delays.titleMain} color={palette.accent} align="left" />
       </Wobble>
       <div style={{ marginTop: 10, alignSelf: "stretch" }}>
         <TitleMark delay={motion.delays.titleMark} align="left" />
@@ -73,7 +73,7 @@ const Label = ({ title }: { readonly title: Title }) => {
         </div>
       ) : null}
       <Wobble seed="title">
-        <PopWords text={title.main} fontSize={Math.round(type.titleMain * 1.1)} delay={motion.delays.titleMain} />
+        <PopWords edit="title:main" text={title.main} fontSize={Math.round(type.titleMain * 1.1)} delay={motion.delays.titleMain} />
       </Wobble>
       <div style={{ marginTop: 10 }}>
         <TitleMark delay={motion.delays.titleMark} />

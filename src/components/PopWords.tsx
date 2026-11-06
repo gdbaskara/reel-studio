@@ -20,6 +20,8 @@ type Props = {
   readonly align?: "center" | "left";
   // Room the words have before they shrink to fit.
   readonly width?: number;
+  // "<sceneId>:<field>", so the editor can open this text's field when it is clicked in the preview.
+  readonly edit?: string;
 };
 
 // How an *emphasized* word stands out, per the look's emphasis style.
@@ -76,7 +78,7 @@ const useFit = (text: string, fontSize: number, font: string, weight: number, wi
 };
 
 // Each word springs up and in, one after another, like it is being said.
-export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "center", width = TEXT_WIDTH }: Props) => {
+export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "center", width = TEXT_WIDTH, edit }: Props) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const look = useLook();
@@ -88,6 +90,7 @@ export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "
   return (
     <div
       ref={ref}
+      data-edit={edit}
       style={{
         display: "flex",
         flexWrap: "wrap",
