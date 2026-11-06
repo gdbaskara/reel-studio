@@ -32,3 +32,21 @@ Nomor 8 (font dan label uppercase) dipindah ke batch 4, karena pilihan font butu
 - R-39 PASS: menu More memakai `<details>`/`<summary>` native. Setiap kontrol punya nama dan state hover, active, dan disabled. Reduced motion dihormati.
 - Tes: 213 lulus, `tsc` bersih.
 - Render video tidak berubah, karena batch ini tidak menyentuh `src/`.
+
+## Batch 2 (branch `fix/audit-batch-2`): hasil video
+
+Design read: reel penjelasan vertikal untuk feed sosial, tiap look memakai bahasa visualnya sendiri, dial ENERGY 2 / RHYTHM 2 / MOTION 2.
+
+Nomor yang dikerjakan: 7, 9, 10, 11.
+
+| # | Status | Yang berubah | Bukti |
+|---|--------|--------------|-------|
+| 7 | Selesai | 6 doodle baru (bulb, clock, chat, stack, flag, magnifier), jadi 11 total. Prompt planner sekarang menjelaskan arti tiap doodle, supaya AI memilih yang cocok dengan step | Prompt memuat semua nama dan artinya (tes). Stills demo: "Grab the tiles" pakai stack, "Know the suits" pakai magnifier |
+| 9 | Selesai | Konten diletakkan di tengah area antara atas (atau brand mark) dan caption, bukan menempel di atas | Stills sebelum dan sesudah untuk Notebook dan Neon |
+| 10 | Selesai untuk reel baru | Reel baru mendapat layout bergantian (center, left, ..., big-number di step terakhir). Sticky note bergantian miring dan masuk dari sisi yang berlawanan | `rhythmLayouts` dan `withRhythm` diuji. Stills demo 5 step |
+| 11 | Selesai | Seluruh scene membesar pelan (3.5%) selama scene berjalan. Doodle mengambang 6px setelah selesai digambar. Kata di judul yang sedang diucapkan naik dan membesar sedikit (kata minimal 4 huruf) | Frame di 1.73 detik: "game" terangkat saat diucapkan dan tidak menabrak "the" |
+
+Catatan:
+- Reel lama juga ikut berubah saat dirender ulang (posisi tengah, zoom pelan, doodle mengambang, denyut kata, note bergantian). Layout bervariasi dan doodle yang lebih cocok hanya otomatis untuk reel baru; reel lama bisa memakai Shuffle atau memilih layout per step.
+- Notebook sengaja tidak lagi sama pixel per pixel dengan versi lama, karena memang komposisinya yang diperbaiki.
+- Tes: 222 lulus, `tsc` bersih. Editor dicek di browser: preview jalan, picker menampilkan 11 doodle, tidak ada error console yang berhubungan.

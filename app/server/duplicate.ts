@@ -25,6 +25,9 @@ export const duplicateOf = (project: Project, id: string, now: string): Project 
     plan: { ...project.plan, name, steps: project.plan.steps.map((step) => (step.image ? { ...step, image: moved(step.image) } : step)) },
     voice: Object.fromEntries(Object.entries(project.voice).map(([sceneId, clip]) => [sceneId, moved(clip)])),
     ...(project.music ? { music: moved(project.music) } : {}),
+    ...(project.options.backdrop?.kind === "image"
+      ? { options: { ...project.options, backdrop: { ...project.options.backdrop, image: moved(project.options.backdrop.image) } } }
+      : {}),
     render: { status: "idle", progress: 0, updatedAt: now },
   };
 };

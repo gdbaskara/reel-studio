@@ -1,6 +1,6 @@
 import type { LookId } from "./looks/types";
 
-export type Drawing = "arrow" | "circle" | "zigzag" | "check" | "star";
+export type Drawing = "arrow" | "circle" | "zigzag" | "check" | "star" | "bulb" | "clock" | "chat" | "stack" | "flag" | "magnifier";
 
 export type Palette = {
   readonly paper: string;
@@ -26,7 +26,20 @@ export type Step = {
   readonly layout?: StepLayout;
   // A picture such as a screenshot; src is an image URL.
   readonly image?: { readonly src: string; readonly width: number; readonly height: number };
+  // A line illustration on a 400x400 canvas; it replaces the doodle.
+  readonly art?: Art;
 };
+
+// paths are the lines; fills are closed shapes coloured in behind them.
+export type Art = { readonly paths: readonly string[]; readonly fills?: readonly string[] };
+
+export type BackdropPattern = "dots" | "grid" | "lines" | "gradient" | "grain";
+// What sits behind every scene; absent is the look's own background.
+export type Backdrop =
+  | { readonly kind: "look" }
+  | { readonly kind: "pattern"; readonly pattern: BackdropPattern }
+  | { readonly kind: "motif" }
+  | { readonly kind: "image"; readonly image: { readonly src: string; readonly width: number; readonly height: number }; readonly dim: number };
 
 // One reel = one voiceover script (voiceover/<id>.txt) + this visual spec.
 export type ReelSpec = {
@@ -41,6 +54,7 @@ export type ReelSpec = {
   readonly title: { readonly lead: string; readonly main: string; readonly layout?: TitleLayout };
   readonly steps: readonly Step[];
   readonly outro: { readonly main: string; readonly sub: string; readonly layout?: OutroLayout };
+  readonly backdrop?: Backdrop;
 };
 
 export type CaptionWord = { readonly text: string; readonly start: number; readonly end: number };

@@ -15,13 +15,16 @@ const STYLES: Readonly<Record<NoteStyle, (p: Palette) => CSSProperties>> = {
   plain: (p) => ({ padding: "10px 20px", color: p.ink, opacity: 0.8 }),
 };
 
-const enter = (from: "right" | "bottom" | "fade", t: number) =>
-  from === "right" ? `translateX(${(1 - t) * 700}px)` : from === "bottom" ? `translateY(${(1 - t) * 160}px)` : "";
+// side is 1 for the right and -1 for the left.
+const enter = (from: "right" | "bottom" | "fade", t: number, side: number) =>
+  from === "right" ? `translateX(${(1 - t) * 700 * side}px)` : from === "bottom" ? `translateY(${(1 - t) * 160}px)` : "";
 
 // The short detail under a step title. Text without *emphasis* is drawn exactly as typed.
-type NoteProps = { readonly text: string; readonly delay: number; readonly align?: "center" | "left" };
+// flip mirrors the tilt and the side it slides in from, so neighbouring steps do not look alike.
+type NoteProps = { readonly text: string; readonly delay: number; readonly align?: "center" | "left"; readonly flip?: boolean };
 
-export const Note = ({ text, delay, align = "center" }: NoteProps) => {
+export const Note = ({ text, delay, align = "center", flip = false }: NoteProps) => {
+  const side = flip ? -1 : 1;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const look = useLook();
@@ -37,7 +40,7 @@ export const Note = ({ text, delay, align = "center" }: NoteProps) => {
         textAlign: align,
         ...STYLES[look.note](palette),
         opacity: look.note === "plain" ? 0.8 * slide : slide,
-        transform: `${enter(motion.noteFrom, slide)} rotate(${motion.noteTilt}deg)`.trim(),
+        transform: `${enter(motion.noteFrom, slide, side)} rotate(${motion.noteTilt * side}deg)`.trim(),
       }}
     >
       {text.includes("*")

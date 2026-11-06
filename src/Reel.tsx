@@ -20,7 +20,7 @@ export const Canvas = ({ spec, brand, children }: CanvasProps) => {
     <LookProvider value={look}>
       <ContentTopProvider value={brand ? BRANDED_CONTENT_TOP : CONTENT_TOP}>
         <AbsoluteFill style={{ backgroundColor: spec.palette.paper, fontFamily: look.fonts.display, color: spec.palette.ink }}>
-          {look.background === "flat" ? null : <Background />}
+          <Background backdrop={spec.backdrop} steps={spec.steps} />
           {children}
         </AbsoluteFill>
       </ContentTopProvider>

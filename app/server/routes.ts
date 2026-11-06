@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import express, { Router, type Request } from "express";
 import { z } from "zod";
-import { CreateRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, musicSettings, type Clip, type Project } from "../shared/project";
+import { CreateRequestSchema, DEFAULT_BACKDROP_DIM, DrawArtRequestSchema, GENERATORS, OMNIVOICE_VOICE, UpdateRequestSchema, musicSettings, type Clip, type Project } from "../shared/project";
 import { blankScenes } from "../shared/blanks";
 import { sceneIdsOf } from "../shared/toReel";
 import { loadEnv } from "../../scripts/env.mjs";
@@ -23,6 +23,8 @@ import { RestyleRequestSchema } from "../shared/restyle";
 import { lookChoice } from "../../src/looks";
 import { IMAGE_UPLOAD_LIMIT } from "./images";
 import { duplicateProject } from "./duplicate";
+import { withRhythm } from "../shared/rhythm";
+import { drawIllustrations, withIllustrations } from "./illustrate";
 import { newStyleId, savedStyles } from "./styleStore";
 import { ApplyStyleRequestSchema, SaveStyleRequestSchema, optionsWithSavedStyle, styleFromProject, withSavedStyle } from "../shared/savedStyle";
 import { firstPaletteOf } from "../../src/looks";
@@ -107,8 +109,11 @@ export const apiRouter = (): Router => {
     const { prompt, options: chosen, autoLook, styleId } = parse(CreateRequestSchema, req.body);
     const style = styleId ? await savedStyles.get(styleId) : undefined;
     const pickLook = Boolean(autoLook) && !style && chosen.planMode === "ai";
-    const { plan, look: suggested }: PlannerReply =
+    const { plan: planned, look: suggested }: PlannerReply =
       chosen.planMode === "ai" ? await planWithAi(prompt, chosen, pickLook) : { plan: manualPlan(prompt, chosen) };
+    // New reels vary their step layouts, so neighbouring steps never look the same.
+    // An AI plan also gets an illustration per step; a manual plan has no text to draw yet.
+    const plan = chosen.planMode === "ai" ? await withIllustrations(prompt, withRhythm(planned)) : withRhythm(planned);
     // The captions checkbox on the create page starts from the style but the user's last choice wins.
     const options: CreateOptions = style
       ? { ...optionsWithSavedStyle(chosen, style), captions: chosen.captions }
@@ -138,7 +143,7 @@ export const apiRouter = (): Router => {
 
   api.put("/projects/:id", async (req, res) => {
     const { id } = params(req);
-    const { plan, captions, palette, look, progressBar, brand, transition, tune, music, sceneMap } = parse(UpdateRequestSchema, req.body);
+    const { plan, captions, palette, look, progressBar, brand, transition, tune, music, backdrop, sceneMap } = parse(UpdateRequestSchema, req.body);
     const ids = sceneIdsOf(plan);
     const remap = (project: Project) => Object.fromEntries(
       ids.flatMap((newId) => {
@@ -172,6 +177,7 @@ export const apiRouter = (): Router => {
             ...(transition ? { transition } : {}),
             ...(tune ? { tune } : {}),
             ...(music ? { music } : {}),
+            ...(backdrop ? { backdrop } : {}),
           },
         };
       }),
@@ -250,6 +256,19 @@ export const apiRouter = (): Router => {
     }
   });
 
+  // A background picture, saved into the project's media folder and set as the reel's backdrop,
+  // dimmed under the paper colour so text on top stays readable.
+  api.put("/projects/:id/backdrop", express.raw({ type: () => true, limit: IMAGE_UPLOAD_LIMIT }), async (req, res) => {
+    const { id } = params(req);
+    await getProject(id);
+    const image = await saveStepImage(id, uploadBody(req));
+    try {
+      res.json(await mutate(id, (project) => ({ ...project, options: { ...project.options, backdrop: { kind: "image", image, dim: DEFAULT_BACKDROP_DIM } } })));
+    } finally {
+      releasePending(image);
+    }
+  });
+
   // The logo is shrunk to a small PNG and kept inside project.json; see LogoSchema.
   api.put("/projects/:id/logo", express.raw({ type: () => true, limit: LOGO_UPLOAD_LIMIT }), async (req, res) => {
     const { id } = params(req);
@@ -271,6 +290,21 @@ export const apiRouter = (): Router => {
   api.post("/projects/:id/duplicate", async (req, res) => {
     const { id } = params(req);
     res.status(201).json(await withProjectLock(id, () => duplicateProject(id)));
+  });
+
+  // Draws a new illustration for one step from the text the editor sends. Nothing is saved:
+  // the editor sets it as an edit, so it can be undone like any other change.
+  api.post("/projects/:id/scenes/:sceneId/art", async (req, res) => {
+    const { id, sceneId } = params(req);
+    if (!sceneId.startsWith("step-")) throw new HttpError(400, "Only steps have an illustration.");
+    const step = parse(DrawArtRequestSchema, req.body);
+    if (!step.title.trim() && !step.note.trim()) throw new HttpError(400, "Write the step title first, so there is something to draw.");
+    const { prompt } = await getProject(id);
+    const drawn = await drawIllustrations(prompt, [step]).catch((error: unknown) => {
+      throw new HttpError(502, error instanceof Error ? error.message : "Claude could not draw this step.");
+    });
+    if (!drawn[0]) throw new HttpError(502, "Claude's drawing was not usable. Try Redraw.");
+    res.json({ art: drawn[0] });
   });
 
   // Asks the AI for a style change. Nothing is saved: the editor previews it and applies it as an edit.

@@ -1,4 +1,4 @@
-import { DEFAULT_BRAND_POSITION, musicSettings, type Brand, type CreateOptions, type MusicSettings, type Project } from "../../shared/project";
+import { DEFAULT_BRAND_POSITION, musicSettings, type Backdrop, type Brand, type CreateOptions, type MusicSettings, type Project } from "../../shared/project";
 import { toReelProps } from "../../shared/toReel";
 import { DEFAULT_LOOK, firstPaletteOf, lookChoice } from "../../../src/looks";
 import type { LookId } from "../../../src/looks/types";
@@ -19,7 +19,10 @@ export type Style = {
   readonly transition: Transition | null;
   readonly tune: Tune;
   readonly music: MusicSettings;
+  readonly backdrop: Backdrop;
 };
+
+export const LOOK_BACKDROP: Backdrop = { kind: "look" };
 
 export const NO_BRAND: Brand = { handle: "", position: DEFAULT_BRAND_POSITION };
 
@@ -35,6 +38,7 @@ export const styleOf = (options: CreateOptions): Style => ({
   transition: options.transition ?? null,
   tune: options.tune ?? DEFAULT_TUNE,
   music: musicSettings(options),
+  backdrop: options.backdrop ?? LOOK_BACKDROP,
 });
 
 export const firstPalette = firstPaletteOf;

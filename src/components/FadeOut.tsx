@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { useLook } from "../ThemeContext";
-import { useContentTop } from "../layout";
+import { CANVAS_HEIGHT, CONTENT_BOTTOM, useContentTop } from "../layout";
+import { drift } from "../life";
 
 type Props = { readonly children: ReactNode; readonly duration: number; readonly outro?: boolean };
 
@@ -15,5 +16,19 @@ export const FadeOut = ({ children, duration, outro = false }: Props) => {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  return <AbsoluteFill style={{ opacity, alignItems: "center", padding: `${top}px 80px 0`, justifyContent: "flex-start" }}>{children}</AbsoluteFill>;
+  // Content sits in the middle of the band between the top (or brand mark) and the captions,
+  // and the whole scene grows slowly so the frame keeps moving while the voice talks.
+  return (
+    <AbsoluteFill
+      style={{
+        opacity,
+        alignItems: "center",
+        padding: `${top}px 80px ${CANVAS_HEIGHT - CONTENT_BOTTOM}px`,
+        justifyContent: "center",
+        transform: `scale(${drift(frame, duration)})`,
+      }}
+    >
+      {children}
+    </AbsoluteFill>
+  );
 };

@@ -31,6 +31,7 @@ describe("styleOf", () => {
       transition: null,
       tune: { textScale: 1, speed: "normal" },
       music: { volume: 0.3, duck: true },
+      backdrop: { kind: "look" },
     });
   });
 
