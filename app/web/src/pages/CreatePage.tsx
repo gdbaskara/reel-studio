@@ -1,10 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CreatePreview } from "../components/CreatePreview";
+import { LookStrip } from "../components/LookStrip";
+import { ReelList } from "../components/ReelList";
+import { sampleProject } from "../sample";
+import { styleOf, type StyleOverride } from "../style";
 import type { CreateOptions } from "../../../shared/project";
 import { sceneIdsOf, sceneLabel } from "../../../shared/toReel";
 import { voiceEveryScene } from "../createVoices";
 import { leaveNotice } from "../notice";
-import { DEFAULT_LOOK, LOOKS } from "../../../../src/looks";
-import { LOOK_IDS } from "../../../../src/looks/types";
+import { DEFAULT_LOOK } from "../../../../src/looks";
 import { api, type ProjectSummary } from "../api";
 import { navigate } from "../App";
 import { Choice } from "../components/Choice";
@@ -44,6 +48,10 @@ export const CreatePage = () => {
   const saved = useSavedStyles();
   // The AI can only pick a look while it writes the plan.
   const aiPicks = lookSource.kind === "ai" && options.planMode === "ai";
+  // The reel about to be made, drawn on the preview in the hovered look or the picked one.
+  const [hovered, setHovered] = useState<StyleOverride | null>(null);
+  const sample = useMemo(() => sampleProject(options, prompt), [options, prompt]);
+  const shownLook: StyleOverride = hovered ?? { look: options.look ?? DEFAULT_LOOK, palette: options.palette };
 
   // The reel list says when it could not load, so an empty list never hides a server problem.
   const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
@@ -120,6 +128,7 @@ export const CreatePage = () => {
         <p>Describe a reel. Choose how it gets planned and voiced. Then fine-tune every scene.</p>
       </header>
 
+      <div className="create-layout">
       <section className="panel">
         <label className="field">
           <span>What is the reel about?</span>
@@ -199,7 +208,7 @@ export const CreatePage = () => {
           </fieldset>
         </div>
 
-        <div className="row">
+        <div className="look-pick">
           <fieldset className="choice">
             <legend>5. Look</legend>
             <div className="look-chips">
@@ -233,30 +242,17 @@ export const CreatePage = () => {
                   </button>
                 );
               })}
-              {LOOK_IDS.map((id) => {
-                const { name, description, palettes } = LOOKS[id];
-                const { paper, accent, highlight } = palettes[0].colors;
-                const selected = !aiPicks && lookSource.kind !== "style" && options.look === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`look-chip${selected ? " selected" : ""}`}
-                    aria-pressed={selected}
-                    title={description}
-                    onClick={() => {
-                      setLookSource({ kind: "look" });
-                      setOptions((o) => ({ ...o, look: id, palette: firstPalette(id) }));
-                    }}
-                  >
-                    {[paper, accent, highlight].map((c, i) => (
-                      <i key={i} style={{ background: c }} />
-                    ))}
-                    {name}
-                  </button>
-                );
-              })}
             </div>
+            {/* Real stills of this reel's title in every look; hovering shows one on the big preview. */}
+            <LookStrip
+              project={sample}
+              style={styleOf(sample.options)}
+              onPreview={setHovered}
+              onChange={(choice) => {
+                setLookSource({ kind: "look" });
+                setOptions((o) => ({ ...o, look: choice.look, palette: choice.palette }));
+              }}
+            />
           </fieldset>
           <label className="toggle">
             <input type="checkbox" checked={options.captions} onChange={(e) => set("captions", e.target.checked)} />
@@ -284,6 +280,10 @@ export const CreatePage = () => {
           {progress ?? ""}
         </p>
       </section>
+      <aside className="create-aside">
+        <CreatePreview sample={sample} shown={shownLook} aiPicks={aiPicks} />
+      </aside>
+      </div>
 
       {listState === "error" ? (
         <section className="panel">
@@ -298,32 +298,25 @@ export const CreatePage = () => {
       ) : null}
       {listState === "loading" ? <p className="hint">Loading your reels...</p> : null}
       {listState === "ready" && projects.length ? (
-        <section className="panel">
+        <section className="panel reels">
           <h2>Your reels</h2>
-          <ul className="project-list">
-            {projects.map((p) => (
-              <li key={p.id}>
-                <a href={`#/p/${p.id}`}>{p.name}</a>
-                <span className="project-meta">
-                  <time>{new Date(p.updatedAt).toLocaleString()}</time>
-                  <button
-                    type="button"
-                    className="link"
-                    disabled={busy}
-                    title="Copy this reel to use as a template"
-                    onClick={() =>
-                      api
-                        .duplicate(p.id)
-                        .then((copy) => navigate(copy.id))
-                        .catch((e: Error) => setError(e.message))
-                    }
-                  >
-                    Duplicate
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <ReelList
+            projects={projects}
+            busy={busy}
+            onDuplicate={(id) =>
+              api
+                .duplicate(id)
+                .then((copy) => navigate(copy.id))
+                .catch((e: Error) => setError(e.message))
+            }
+            onDelete={(p) => {
+              if (!window.confirm(`Delete "${p.name}"? Its voices, pictures and video are removed too. This cannot be undone.`)) return;
+              api
+                .remove(p.id)
+                .then(loadList)
+                .catch((e: Error) => setError(e.message));
+            }}
+          />
         </section>
       ) : null}
     </main>

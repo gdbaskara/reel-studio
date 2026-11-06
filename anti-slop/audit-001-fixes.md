@@ -68,3 +68,35 @@ Catatan:
 - Render MP4 penuh dari salinan Mahjong berhasil: 43.7 detik, 1080x1920, dengan ilustrasi dan background motif.
 - Mobile 375px: tanpa overflow, semua kontrol minimal 44px.
 - Tes: 246 lulus, `tsc` bersih.
+
+## Batch 4 (branch `feat/audit-batch-4`): identitas
+
+Arah dari pemilik: **Studio editorial**.
+
+Design read: alat kreatif untuk kreator konten, bahasa visual editorial (kertas hangat, serif, bingkai cetak), dial ENERGY 2 / RHYTHM 2 / MOTION 1.
+
+Nomor yang dikerjakan: 8, 16, 17, 18.
+
+Alasan tiap keputusan (R-31):
+- **Fraunces untuk judul:** serif lembut dengan sumbu optik. Karakter editorialnya nyambung dengan reel bergaya kertas dan spidol.
+- **Instrument Sans untuk UI:** jelas di ukuran 13 sampai 15px, dan bukan font default AI.
+- **Warna dasar:** kertas `#f4efe6` dan tinta `#1f1b16`, supaya app terasa satu keluarga dengan video yang dibuatnya.
+- **Satu aksen merah bata `#b13f22`:** stempel editor, dipakai hanya untuk aksi dan pilihan aktif.
+- **Motif stabilo kuning di label bagian:** gestur yang sama dengan cara reel menyorot kata. Diulang di setiap panel.
+- **Bingkai cetak (garis tebal dan bayangan offset):** hanya di preview video, supaya video selalu jadi titik fokus.
+
+| # | Status | Yang berubah | Bukti |
+|---|--------|--------------|-------|
+| 8 | Selesai | Label bagian tidak lagi uppercase dengan letter-spacing. Sekarang sentence case dengan serif miring dan stabilo. Font sistem diganti Fraunces dan Instrument Sans, dengan alasan di atas | `h1` memakai Fraunces, `document.fonts.check` bernilai true |
+| 16 | Selesai | Token light dan dark yang baru, motif stabilo, dan bingkai cetak di player, preview Create, dan kartu reel | Semua pasangan teks lolos AA (dicek dengan script, misalnya aksen di atas kertas 5.09:1, muted di atas kertas 5.22:1, teks dark 15.36:1). Light dan dark dicek di browser |
+| 17 | Selesai | Look dipilih lewat still judul asli di 6 look. Preview besar di kanan berubah langsung mengikuti topik yang diketik dan look yang di-hover | Mengetik "Cara main mahjong untuk pemula" mengubah judul preview. Hover Neon Night mengganti preview |
+| 18 | Selesai | Daftar reel jadi kartu dengan thumbnail judul, jumlah step, status MP4, dan tanggal. Ada Duplicate, Delete (dengan konfirmasi, menolak hapus saat sedang render), dan pencarian mulai dari 7 reel | Hapus duplikat sementara: konfirmasi muncul, folder hilang, hapus kedua kali mengembalikan 404 |
+
+Catatan:
+- Font dimuat dari Google Fonts dengan `display=swap`. Saat offline, app memakai Georgia dan font sistem.
+- Mobile 375px tanpa overflow. Radio yang tersembunyi secara visual memang 1px; area sentuhnya adalah kartu pilihan, yang tingginya di atas 44px.
+- Tes: 250 lulus, `tsc` bersih.
+
+## Status akhir audit 001
+
+Semua 19 temuan sudah dikerjakan dan di-merge ke main: batch 1 (#13), batch 2 (#14), batch 3 (#15), dan batch 4 (PR ini).

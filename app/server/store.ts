@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { ProjectSchema, RenderStateSchema, type Project } from "../shared/project";
+import { projectSummary, type ProjectSummary } from "../shared/summary";
 import { DATA_DIR, HttpError, audioDir, projectDir } from "./paths";
 import { writeJson } from "./jsonFile";
 
@@ -47,12 +48,18 @@ export const saveProject = async (project: Project): Promise<Project> => {
   return getProject(project.id);
 };
 
-export const listProjects = async (): Promise<readonly Pick<Project, "id" | "name" | "updatedAt">[]> => {
+export const listProjects = async (): Promise<readonly ProjectSummary[]> => {
   if (!existsSync(DATA_DIR)) return [];
   const ids = (await readdir(DATA_DIR)).filter((name) => existsSync(join(DATA_DIR, name, "project.json")));
   const projects = await Promise.all(ids.map((id) => getProject(id).catch(() => null)));
   return projects
     .filter((p): p is Project => p !== null)
-    .map(({ id, name, updatedAt }) => ({ id, name, updatedAt }))
+    .map(projectSummary)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+};
+
+// Removes a reel and everything in its folder: plan, voices, music, pictures and the rendered video.
+export const deleteProject = async (id: string): Promise<void> => {
+  await getProject(id);
+  await rm(projectDir(id), { recursive: true, force: true });
 };

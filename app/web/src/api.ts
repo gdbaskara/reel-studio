@@ -2,10 +2,11 @@ import type { CreateRequest, Generator, Project, UpdateRequest } from "../../sha
 import type { SavedStyle } from "../../shared/savedStyle";
 import type { Proposal } from "../../shared/restyle";
 import type { Plan } from "../../shared/project";
+import type { ProjectSummary } from "../../shared/summary";
 
 type StepArt = NonNullable<Plan["steps"][number]["art"]>;
 
-export type ProjectSummary = Pick<Project, "id" | "name" | "updatedAt">;
+export type { ProjectSummary } from "../../shared/summary";
 export type Status = {
   readonly planner: "anthropic-api" | "claude-cli";
   readonly elevenlabs: boolean;
@@ -32,6 +33,7 @@ const json = (method: string, body: unknown): RequestInit => ({
 export const api = {
   status: () => request<Status>("/status"),
   list: () => request<ProjectSummary[]>("/projects"),
+  remove: (id: string) => request<unknown>(`/projects/${id}`, { method: "DELETE" }),
   get: (id: string) => request<Project>(`/projects/${id}`),
   create: (body: CreateRequest) => request<Project>("/projects", json("POST", body)),
   update: (id: string, body: UpdateRequest) => request<Project>(`/projects/${id}`, json("PUT", body)),
