@@ -1,4 +1,5 @@
-import { Easing, interpolate, useCurrentFrame } from "remotion";
+import { Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { bob } from "../life";
 import { useLook } from "../ThemeContext";
 import type { Drawing } from "../types";
 import { DRAWINGS, UNDERLINE } from "./drawings";
@@ -25,11 +26,19 @@ export const OutroMark = ({ delay }: { readonly delay: number }) => {
 };
 
 // The doodle under a step: a marker stroke, or a thinner, even line in the accent color.
+// Once drawn, it floats gently while the voice goes on.
 export const Doodle = ({ drawing, delay }: { readonly drawing: Drawing; readonly delay: number }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const { decoration, palette } = useLook();
-  return decoration === "scribble" ? (
-    <Scribble {...DRAWINGS[drawing]} delay={delay} duration={24} />
-  ) : (
-    <Scribble {...DRAWINGS[drawing]} width={DRAWINGS[drawing].width * 0.8} delay={delay} duration={20} strokeWidth={7} color={palette.accent} />
+  const draw = decoration === "scribble" ? 24 : 20;
+  return (
+    <div style={{ transform: `translateY(${bob(frame, delay + draw, fps)}px)` }}>
+      {decoration === "scribble" ? (
+        <Scribble {...DRAWINGS[drawing]} delay={delay} duration={draw} />
+      ) : (
+        <Scribble {...DRAWINGS[drawing]} width={DRAWINGS[drawing].width * 0.8} delay={delay} duration={draw} strokeWidth={7} color={palette.accent} />
+      )}
+    </div>
   );
 };

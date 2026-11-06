@@ -23,7 +23,7 @@ const Center = ({ step, number }: Omit<Props, "duration">) => {
         <PopWords text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} />
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} /> : null}
-      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} /> : null}
+      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
       {step.image ? null : (
         <div style={{ marginTop: 50 }}>
           <Doodle drawing={step.drawing} delay={motion.delays.stepDoodle} />
@@ -43,7 +43,7 @@ const Left = ({ step, number }: Omit<Props, "duration">) => {
         <PopWords text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} align="left" />
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} align="left" /> : null}
-      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} align="left" /> : null}
+      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} align="left" flip={number % 2 === 0} /> : null}
       {step.image ? null : (
         <div style={{ marginTop: 50 }}>
           <Doodle drawing={step.drawing} delay={motion.delays.stepDoodle} />
@@ -82,7 +82,7 @@ const BigNumber = ({ step, number }: Omit<Props, "duration">) => {
         <PopWords text={step.title} fontSize={type.stepTitle} delay={motion.delays.stepTitle} />
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} /> : null}
-      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} /> : null}
+      {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
     </>
   );
 };

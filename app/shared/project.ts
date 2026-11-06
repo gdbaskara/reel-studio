@@ -3,7 +3,8 @@ import { LOOK_IDS } from "../../src/looks/types";
 import { TRANSITIONS } from "../../src/transitions";
 import { SPEEDS, TEXT_SCALE_RANGE } from "../../src/looks/tune";
 
-export const DRAWINGS = ["arrow", "circle", "zigzag", "check", "star"] as const;
+// New doodles go at the end, so the doodle a new step gets by position stays the same.
+export const DRAWINGS = ["arrow", "circle", "zigzag", "check", "star", "bulb", "clock", "chat", "stack", "flag", "magnifier"] as const;
 // Palette names belong to a look (e.g. Notebook has warm, green and blue); unknown names fall back to the look's first.
 export const PALETTE_NAME = /^[a-z0-9-]{1,30}$/;
 // "voicebox" and "mac" are kept only so clips made with those removed voices still open and play.

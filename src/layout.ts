@@ -6,6 +6,7 @@ export const CONTENT_TOP = 240;
 export const BRANDED_CONTENT_TOP = 330;
 // Scene content should end here, above the captions (which sit 380px from the bottom).
 export const CONTENT_BOTTOM = 1420;
+export const CANVAS_HEIGHT = 1920;
 
 const ContentTopContext = createContext(CONTENT_TOP);
 export const ContentTopProvider = ContentTopContext.Provider;

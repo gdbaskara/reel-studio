@@ -6,6 +6,7 @@ import { TitleScene } from "./scenes/TitleScene";
 import { StepScene } from "./scenes/StepScene";
 import { OutroScene } from "./scenes/OutroScene";
 import { Captions } from "./components/Captions";
+import { SpokenProvider } from "./spoken";
 
 const SceneBody = ({ spec, scene }: { readonly spec: ReelSpec; readonly scene: Scene }) => {
   switch (scene.kind) {
@@ -41,7 +42,9 @@ const Entering = ({ spec, scene, enters }: Omit<Props, "captions">) => {
 // One scene with its visuals, captions and voice clip, starting at frame 0.
 export const SceneSlot = ({ spec, scene, captions, enters }: Props) => (
   <>
-    <Entering spec={spec} scene={scene} enters={enters} />
+    <SpokenProvider voice={scene.clip ? { words: scene.clip.words, delayFrames: VOICE_DELAY } : null}>
+      <Entering spec={spec} scene={scene} enters={enters} />
+    </SpokenProvider>
     {scene.clip && captions ? <Captions words={scene.clip.words} delayFrames={VOICE_DELAY} /> : null}
     {scene.clip ? (
       <Sequence from={VOICE_DELAY}>

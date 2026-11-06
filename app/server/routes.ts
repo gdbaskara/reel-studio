@@ -23,6 +23,7 @@ import { RestyleRequestSchema } from "../shared/restyle";
 import { lookChoice } from "../../src/looks";
 import { IMAGE_UPLOAD_LIMIT } from "./images";
 import { duplicateProject } from "./duplicate";
+import { withRhythm } from "../shared/rhythm";
 import { newStyleId, savedStyles } from "./styleStore";
 import { ApplyStyleRequestSchema, SaveStyleRequestSchema, optionsWithSavedStyle, styleFromProject, withSavedStyle } from "../shared/savedStyle";
 import { firstPaletteOf } from "../../src/looks";
@@ -107,8 +108,10 @@ export const apiRouter = (): Router => {
     const { prompt, options: chosen, autoLook, styleId } = parse(CreateRequestSchema, req.body);
     const style = styleId ? await savedStyles.get(styleId) : undefined;
     const pickLook = Boolean(autoLook) && !style && chosen.planMode === "ai";
-    const { plan, look: suggested }: PlannerReply =
+    const { plan: planned, look: suggested }: PlannerReply =
       chosen.planMode === "ai" ? await planWithAi(prompt, chosen, pickLook) : { plan: manualPlan(prompt, chosen) };
+    // New reels vary their step layouts, so neighbouring steps never look the same.
+    const plan = withRhythm(planned);
     // The captions checkbox on the create page starts from the style but the user's last choice wins.
     const options: CreateOptions = style
       ? { ...optionsWithSavedStyle(chosen, style), captions: chosen.captions }

@@ -17,6 +17,22 @@ const NUMBER_WORDS = {
 
 const LookIdSchema = z.enum(LOOK_IDS);
 
+// What each doodle shows, so the planner picks one that matches the step instead of a random shape.
+const DRAWING_MEANING: Readonly<Record<(typeof DRAWINGS)[number], string>> = {
+  arrow: "a move, a direction or what comes next",
+  circle: "pointing out one thing to notice",
+  zigzag: "variety, a range or ups and downs",
+  check: "something done right or confirmed",
+  star: "the best or most important point",
+  bulb: "an idea, a tip or learning something",
+  clock: "time, a turn, waiting or a deadline",
+  chat: "talking, asking, saying or calling out",
+  stack: "a set, a collection or many items",
+  flag: "a goal, a finish or winning",
+  magnifier: "looking, searching, checking or details",
+};
+const drawingMenu = () => DRAWINGS.map((name) => `"${name}" (${DRAWING_MEANING[name]})`).join(", ");
+
 const lookMenu = () => LOOK_IDS.map((id) => `- "${id}": ${LOOKS[id].description}`).join("\n");
 
 // Asked only when the user lets the AI pick the look.
@@ -35,7 +51,7 @@ Return ONLY a JSON object, no prose, no code fences, matching:
 {
   "name": "short project name",
   "title": { "lead": "2-4 words", "main": "1-3 words, the punchline" },
-  "steps": [ { "title": "2-4 words", "note": "max 8 words, an example or detail", "drawing": one of ${JSON.stringify(DRAWINGS)} } ],
+  "steps": [ { "title": "2-4 words", "note": "max 8 words, an example or detail", "drawing": the doodle that best matches this step, one of: ${drawingMenu()} } ],
   "outro": { "main": "1-3 words", "sub": "1-4 words" },
   "narration": {
     "title": "one sentence spoken over the title",

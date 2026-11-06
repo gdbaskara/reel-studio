@@ -4,6 +4,13 @@ import { parseEmphasis } from "../looks/emphasis";
 import { fitScale, TEXT_WIDTH } from "../looks/fit";
 import type { ResolvedLook } from "../looks/types";
 import { useLook } from "../ThemeContext";
+import { echoAmount } from "../life";
+import { useSpoken } from "../spoken";
+
+// At the peak of an echo a word sits 14px higher and 6% larger, growing from its baseline
+// so it never bumps into the words beside it.
+const ECHO_LIFT = 14;
+const ECHO_GROW = 0.06;
 
 type Props = {
   readonly text: string;
@@ -76,6 +83,7 @@ export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "
   const { motion, type } = look;
   const words = parseEmphasis(text);
   const { ref, size: fontSize } = useFit(text, fullSize, look.fonts.display, look.fonts.displayWeight, width);
+  const spoken = useSpoken();
 
   return (
     <div
@@ -94,6 +102,8 @@ export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "
     >
       {words.map((word, i) => {
         const progress = spring({ frame: frame - delay - i * motion.stagger, fps, config: motion.word });
+        // The word lifts and grows a little while the voice says it.
+        const echo = echoAmount(word.text, spoken);
         return (
           <span
             key={`${word.text}-${i}`}
@@ -101,7 +111,8 @@ export const PopWords = ({ text, delay = 0, fontSize: fullSize, color, align = "
               display: "inline-block",
               marginRight: fontSize * 0.25,
               opacity: Math.min(progress * 1.5, 1),
-              transform: `translateY(${(1 - progress) * motion.rise}px) scale(${motion.scaleFrom + progress * (1 - motion.scaleFrom)})`,
+              transform: `translateY(${(1 - progress) * motion.rise - echo * ECHO_LIFT}px) scale(${(motion.scaleFrom + progress * (1 - motion.scaleFrom)) * (1 + echo * ECHO_GROW)})`,
+              ...(echo > 0 ? { transformOrigin: "50% 85%" } : {}),
               ...(word.strong ? strongStyle(look, color, fontSize) : {}),
             }}
           >

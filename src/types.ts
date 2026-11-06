@@ -1,6 +1,6 @@
 import type { LookId } from "./looks/types";
 
-export type Drawing = "arrow" | "circle" | "zigzag" | "check" | "star";
+export type Drawing = "arrow" | "circle" | "zigzag" | "check" | "star" | "bulb" | "clock" | "chat" | "stack" | "flag" | "magnifier";
 
 export type Palette = {
   readonly paper: string;
