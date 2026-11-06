@@ -3,6 +3,7 @@ import { hintsFor } from "../hints";
 import { DoodlePicker } from "./DoodlePicker";
 import { LayoutPicker, OUTRO_CHOICES, STEP_CHOICES, TITLE_CHOICES } from "./LayoutPicker";
 import { StepPicture } from "./StepPicture";
+import { StepArt } from "./StepArt";
 
 type Props = {
   readonly plan: Plan;
@@ -13,6 +14,8 @@ type Props = {
   readonly imageBusy: boolean;
   readonly onUploadImage: (file: File) => void;
   readonly onRemoveImage: () => void;
+  readonly artBusy: boolean;
+  readonly onDrawArt: () => void;
 };
 
 type TextProps = { label: string; value: string; max: number; hint: string; onChange: (v: string) => void };
@@ -24,7 +27,7 @@ const Text = ({ label, value, max, hint, onChange }: TextProps) => (
   </label>
 );
 
-export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep, imageBusy, onUploadImage, onRemoveImage }: Props) => {
+export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep, imageBusy, onUploadImage, onRemoveImage, artBusy, onDrawArt }: Props) => {
   const hints = hintsFor(language);
   const stepIndex = sceneId.startsWith("step-") ? Number(sceneId.slice(5)) - 1 : -1;
   const step = plan.steps[stepIndex];
@@ -47,8 +50,26 @@ export const SceneInspector = ({ plan, sceneId, language, onChange, onRemoveStep
           <Text label="Step title" value={step.title} max={60} hint={hints.stepTitle} onChange={(title) => setStep({ title })} />
           <Text label="Sticky note" value={step.note} max={120} hint={hints.stepNote} onChange={(note) => setStep({ note })} />
           <LayoutPicker choices={STEP_CHOICES} value={step.layout ?? "center"} onChange={(layout) => setStep({ layout })} />
+          {step.image ? null : (
+            <StepArt
+              art={step.art}
+              busy={artBusy}
+              canDraw={Boolean(step.title.trim() || step.note.trim())}
+              onDraw={onDrawArt}
+              onRemove={() =>
+                onChange((p) => ({
+                  ...p,
+                  steps: p.steps.map((s, i) => {
+                    if (i !== stepIndex) return s;
+                    const { art: _removed, ...rest } = s;
+                    return rest;
+                  }),
+                }))
+              }
+            />
+          )}
           <StepPicture image={step.image} busy={imageBusy} onUpload={onUploadImage} onRemove={onRemoveImage} />
-          {step.layout === "big-number" || step.image ? null : <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />}
+          {step.layout === "big-number" || step.image || step.art ? null : <DoodlePicker value={step.drawing} onChange={(drawing) => setStep({ drawing })} />}
         </>
       ) : null}
       {sceneId === "outro" ? (

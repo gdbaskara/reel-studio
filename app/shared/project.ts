@@ -58,6 +58,28 @@ export const TuneSchema = z.object({
   speed: z.enum(SPEEDS),
 });
 
+// A picture shown in a step, such as a screenshot. Only files in the project's own media folder are allowed.
+export const STEP_IMAGE_SRC = /^\/api\/projects\/[a-z0-9-]{6,40}\/audio\/image-\d+\.png$/;
+export const StepImageSchema = z.object({
+  src: z.string().regex(STEP_IMAGE_SRC),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+
+// What sits behind every scene: the look's own paper, a pattern from any look, the step
+// illustrations scattered faintly as a motif, or an uploaded picture dimmed under the paper colour.
+export const BACKDROP_PATTERNS = ["dots", "grid", "lines", "gradient", "grain"] as const;
+export const BackdropSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("look") }),
+  z.object({ kind: z.literal("pattern"), pattern: z.enum(BACKDROP_PATTERNS) }),
+  z.object({ kind: z.literal("motif") }),
+  // dim is how much of the paper colour covers the picture, so the text stays readable.
+  z.object({ kind: z.literal("image"), image: StepImageSchema, dim: z.number().min(0).max(0.9) }),
+]);
+export type Backdrop = z.infer<typeof BackdropSchema>;
+// Enough paper over a new picture that text stays readable; the editor can lower it.
+export const DEFAULT_BACKDROP_DIM = 0.72;
+
 export const CreateOptionsSchema = z.object({
   language: z.enum(["id", "en"]),
   stepCount: z.number().int().min(2).max(7),
@@ -79,6 +101,8 @@ export const CreateOptionsSchema = z.object({
   tune: TuneSchema.optional(),
   // Set once music settings are first saved; older projects have none.
   music: MusicSettingsSchema.optional(),
+  // Absent uses the look's own background.
+  backdrop: BackdropSchema.optional(),
 });
 
 export const CreateRequestSchema = z.object({
@@ -93,12 +117,16 @@ export const STEP_LAYOUTS = ["center", "left", "big-number"] as const;
 export const TITLE_LAYOUTS = ["center", "left", "label"] as const;
 export const OUTRO_LAYOUTS = ["center", "left", "card"] as const;
 
-// A picture shown in a step, such as a screenshot. Only files in the project's own media folder are allowed.
-export const STEP_IMAGE_SRC = /^\/api\/projects\/[a-z0-9-]{6,40}\/audio\/image-\d+\.png$/;
-export const StepImageSchema = z.object({
-  src: z.string().regex(STEP_IMAGE_SRC),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
+// A line illustration drawn for the step by Claude: stroke paths on a 400x400 canvas.
+// Only absolute M, L, C, Q and Z with numbers are allowed: the data can never carry markup or links,
+// and every number pair is a point, so the drawing can be cropped to what was drawn.
+export const ART_PATH = /^[MLCQZ0-9.,\-\s]+$/;
+export const ART_MAX_PATHS = 14;
+const artPath = z.string().min(3).max(1500).regex(ART_PATH);
+export const ArtSchema = z.object({
+  paths: z.array(artPath).min(1).max(ART_MAX_PATHS),
+  // Closed shapes filled with the palette's highlight behind the lines, for colour.
+  fills: z.array(artPath).max(8).optional(),
 });
 
 export const StepSchema = z.object({
@@ -108,7 +136,11 @@ export const StepSchema = z.object({
   // Absent means center, the original layout.
   layout: z.enum(STEP_LAYOUTS).optional(),
   image: StepImageSchema.optional(),
+  // When present it replaces the doodle.
+  art: ArtSchema.optional(),
 });
+
+export const DrawArtRequestSchema = z.object({ title: text(60), note: text(120) });
 
 export const PlanSchema = z.object({
   name: text(80).min(1),
@@ -168,6 +200,7 @@ export const UpdateRequestSchema = z.object({
   transition: z.enum(TRANSITIONS).nullable().optional(),
   tune: TuneSchema.optional(),
   music: MusicSettingsSchema.optional(),
+  backdrop: BackdropSchema.optional(),
   sceneMap: z.record(z.string().regex(SCENE_ID), z.string().regex(SCENE_ID)).optional(),
 });
 

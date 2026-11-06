@@ -9,11 +9,14 @@ type AudioRef = { readonly src: string };
 
 const fileOf = (ref: AudioRef) => ref.src.split("/").pop() ?? "";
 
-// Every media file a project still points at: its voice clips, its music track and its step images.
-export const audioInUse = (project: Pick<Project, "voice" | "music"> & { readonly plan?: Pick<Project["plan"], "steps"> }): readonly AudioRef[] => [
+// Every media file a project still points at: its voice clips, its music track, its step images and its backdrop picture.
+export const audioInUse = (
+  project: Pick<Project, "voice" | "music"> & { readonly plan?: Pick<Project["plan"], "steps">; readonly options?: Pick<Project["options"], "backdrop"> },
+): readonly AudioRef[] => [
   ...Object.values(project.voice),
   ...(project.music ? [project.music] : []),
   ...(project.plan?.steps.flatMap((step) => (step.image ? [step.image] : [])) ?? []),
+  ...(project.options?.backdrop?.kind === "image" ? [project.options.backdrop.image] : []),
 ];
 
 // Audio files written but not yet saved into project.json; pruning must leave them alone.

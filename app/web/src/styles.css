@@ -182,6 +182,8 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .style-name input { width: 190px; }
 .brand-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .step-picture { max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; border: 1px solid var(--line); justify-self: start; }
+.backdrop-panel .mode-toggle { flex-wrap: wrap; }
+.step-art { width: 160px; height: 160px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); justify-self: start; }
 .logo-preview { height: 40px; max-width: 120px; object-fit: contain; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); }
 .music-panel, .brand-panel { width: min(100%, calc((100vh - 130px) * 9 / 16)); margin: 0 auto; box-sizing: border-box; }
 .music-panel .clip small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

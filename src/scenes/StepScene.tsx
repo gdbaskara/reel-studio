@@ -9,9 +9,28 @@ import { NumberBadge } from "../components/NumberBadge";
 import { PopWords } from "../components/PopWords";
 import { Wobble } from "../components/Wobble";
 import { StepImage } from "../components/StepImage";
+import { Illustration } from "../components/Illustration";
 import { CONTENT_BOTTOM, useContentTop } from "../layout";
 
 type Props = { readonly step: Step; readonly number: number; readonly duration: number };
+
+// The illustration is the scene's focal point, so it gets as much room as the text leaves:
+// wide drawings use the width, tall ones the height. Next to a big number it gets less height.
+const ART_WIDTH = 640;
+const ART_HEIGHT = 420;
+const ART_HEIGHT_BIG_NUMBER = 320;
+
+// Under the text: the step's illustration, else its doodle. A step with a picture shows neither.
+const StepVisual = ({ step, width }: { readonly step: Step; readonly width: number }) => {
+  const { motion } = useLook();
+  if (step.image) return null;
+  if (step.art) return <Illustration art={step.art} delay={motion.delays.stepDoodle} width={width} height={ART_HEIGHT} />;
+  return (
+    <div style={{ marginTop: 50 }}>
+      <Doodle drawing={step.drawing} delay={motion.delays.stepDoodle} />
+    </div>
+  );
+};
 
 // The original layout: badge, title, note and doodle stacked in the middle.
 const Center = ({ step, number }: Omit<Props, "duration">) => {
@@ -24,11 +43,7 @@ const Center = ({ step, number }: Omit<Props, "duration">) => {
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} /> : null}
       {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
-      {step.image ? null : (
-        <div style={{ marginTop: 50 }}>
-          <Doodle drawing={step.drawing} delay={motion.delays.stepDoodle} />
-        </div>
-      )}
+      <StepVisual step={step} width={ART_WIDTH} />
     </>
   );
 };
@@ -44,11 +59,7 @@ const Left = ({ step, number }: Omit<Props, "duration">) => {
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} align="left" /> : null}
       {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} align="left" flip={number % 2 === 0} /> : null}
-      {step.image ? null : (
-        <div style={{ marginTop: 50 }}>
-          <Doodle drawing={step.drawing} delay={motion.delays.stepDoodle} />
-        </div>
-      )}
+      <StepVisual step={step} width={ART_WIDTH} />
     </div>
   );
 };
@@ -67,7 +78,7 @@ const BigNumber = ({ step, number }: Omit<Props, "duration">) => {
     <>
       <div
         style={{
-          fontSize: step.image ? BIG_NUMBER_WITH_IMAGE : BIG_NUMBER_SIZE,
+          fontSize: step.image || step.art ? BIG_NUMBER_WITH_IMAGE : BIG_NUMBER_SIZE,
           lineHeight: 1,
           marginBottom: 30,
           color: palette.accent,
@@ -83,6 +94,7 @@ const BigNumber = ({ step, number }: Omit<Props, "duration">) => {
       </Wobble>
       {step.image ? <StepImage image={step.image} delay={motion.delays.stepNote} /> : null}
       {step.note.trim() ? <Note text={step.note} delay={motion.delays.stepNote} flip={number % 2 === 0} /> : null}
+      {step.art && !step.image ? <Illustration art={step.art} delay={motion.delays.stepDoodle} width={ART_WIDTH} height={ART_HEIGHT_BIG_NUMBER} /> : null}
     </>
   );
 };

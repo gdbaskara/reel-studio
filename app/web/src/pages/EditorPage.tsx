@@ -22,6 +22,7 @@ import { useUndoKeys } from "../useUndoKeys";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { SavedStylesBar } from "../components/SavedStylesBar";
 import { BrandPanel } from "../components/BrandPanel";
+import { BackdropPanel } from "../components/BackdropPanel";
 import { useSavedStyles } from "../useSavedStyles";
 import { applyStyle, type StyleOverride } from "../style";
 
@@ -162,6 +163,13 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             onUpload={editor.uploadLogo}
             onRemoveLogo={editor.removeLogo}
           />
+          <BackdropPanel
+            backdrop={style.backdrop}
+            busy={editor.busy.has("backdrop")}
+            hasArt={preview.plan.steps.some((s) => s.art)}
+            onChange={(backdrop) => editor.setStyle({ ...style, backdrop })}
+            onUpload={editor.uploadBackdrop}
+          />
           <MusicPanel
             music={preview.music}
             settings={style.music}
@@ -181,6 +189,8 @@ export const EditorPage = ({ projectId }: { readonly projectId: string }) => {
             imageBusy={editor.busy.has(`image:${sceneId}`)}
             onUploadImage={(file) => editor.uploadStepImage(sceneId, file)}
             onRemoveImage={() => editor.removeStepImage(sceneId)}
+            artBusy={editor.busy.has(`art:${sceneId}`)}
+            onDrawArt={() => editor.drawStepArt(sceneId)}
             onRemoveStep={() => {
               editor.removeStep(index - 1);
               setSelected(Math.max(0, index - 1));

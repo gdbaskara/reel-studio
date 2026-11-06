@@ -1,6 +1,6 @@
 import { lookChoice } from "../../src/looks";
 import type { BrandMark, ReelProps, ReelSpec } from "../../src/types";
-import { DEFAULT_BRAND_POSITION, musicSettings, type Project } from "./project";
+import { DEFAULT_BRAND_POSITION, musicSettings, type Backdrop, type Project } from "./project";
 import { isDefaultTune } from "../../src/looks/tune";
 
 export const sceneIdsOf = (plan: Project["plan"]): readonly string[] => [
@@ -20,6 +20,13 @@ export const brandOf = (project: Pick<Project, "options" | "logo">): BrandMark |
   return { handle, position, ...(project.logo ? { logo: project.logo.src } : {}) };
 };
 
+// The look's own background needs nothing in the spec; an uploaded picture gets the server address.
+const backdropOf = (backdrop: Backdrop | undefined, audioBase: string): { backdrop?: Backdrop } => {
+  if (!backdrop || backdrop.kind === "look") return {};
+  if (backdrop.kind !== "image") return { backdrop };
+  return { backdrop: { ...backdrop, image: { ...backdrop.image, src: `${audioBase}${backdrop.image.src}` } } };
+};
+
 // Turns a stored project into the props the Remotion reel renders.
 // audioBase makes clip URLs absolute for server-side rendering.
 export const toReelProps = (project: Project, audioBase = ""): ReelProps => {
@@ -33,6 +40,7 @@ export const toReelProps = (project: Project, audioBase = ""): ReelProps => {
     title: project.plan.title,
     steps: project.plan.steps.map((step) => (step.image ? { ...step, image: { ...step.image, src: `${audioBase}${step.image.src}` } } : step)),
     outro: project.plan.outro,
+    ...backdropOf(project.options.backdrop, audioBase),
   };
   const voice = Object.fromEntries(
     Object.entries(project.voice).map(([id, clip]) => [

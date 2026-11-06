@@ -1,6 +1,9 @@
 import type { CreateRequest, Generator, Project, UpdateRequest } from "../../shared/project";
 import type { SavedStyle } from "../../shared/savedStyle";
 import type { Proposal } from "../../shared/restyle";
+import type { Plan } from "../../shared/project";
+
+type StepArt = NonNullable<Plan["steps"][number]["art"]>;
 
 export type ProjectSummary = Pick<Project, "id" | "name" | "updatedAt">;
 export type Status = {
@@ -49,6 +52,12 @@ export const api = {
     }),
   removeMusic: (id: string) => request<Project>(`/projects/${id}/music`, { method: "DELETE" }),
   removeVoice: (id: string, sceneId: string) => request<Project>(`/projects/${id}/scenes/${sceneId}/voice`, { method: "DELETE" }),
+  uploadBackdrop: (id: string, file: File) =>
+    request<Project>(`/projects/${id}/backdrop`, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    }),
   uploadLogo: (id: string, file: File) =>
     request<Project>(`/projects/${id}/logo`, {
       method: "PUT",
@@ -63,6 +72,8 @@ export const api = {
     }),
   removeLogo: (id: string) => request<Project>(`/projects/${id}/logo`, { method: "DELETE" }),
   duplicate: (id: string) => request<Project>(`/projects/${id}/duplicate`, { method: "POST" }),
+  drawArt: (id: string, sceneId: string, step: { readonly title: string; readonly note: string }) =>
+    request<{ art: StepArt }>(`/projects/${id}/scenes/${sceneId}/art`, json("POST", step)),
   restyle: (id: string, text: string) => request<Proposal>(`/projects/${id}/restyle`, json("POST", { request: text })),
   styles: () => request<SavedStyle[]>("/styles"),
   saveStyle: (id: string, name: string) => request<SavedStyle>(`/projects/${id}/styles`, json("POST", { name })),

@@ -239,6 +239,27 @@ export const useProjectEditor = (projectId: string) => {
         setProject(saved);
         if (image) updatePlan((plan) => ({ ...plan, steps: plan.steps.map((s, i) => (i === index ? { ...s, image } : s)) }), null);
       }),
+    // The server saves the picture as the backdrop; the editor's style takes it too, as an edit
+    // that Undo can take back, so the next autosave keeps it.
+    uploadBackdrop: (file: File) =>
+      act("backdrop", async () => {
+        const saved = await api.uploadBackdrop(projectId, file);
+        setProject(saved);
+        const backdrop = saved.options.backdrop;
+        if (!backdrop) return;
+        remember("style");
+        version.current += 1;
+        setStyle((current) => (current ? { ...current, backdrop } : current));
+      }),
+    // Claude draws from the step text as it is now; the drawing lands as an edit, so Undo takes it back.
+    drawStepArt: (sceneId: string) =>
+      act(`art:${sceneId}`, async () => {
+        const index = Number(sceneId.slice(5)) - 1;
+        const step = draft?.plan.steps[index];
+        if (!step) return;
+        const { art } = await api.drawArt(projectId, sceneId, { title: step.title, note: step.note });
+        updatePlan((plan) => ({ ...plan, steps: plan.steps.map((s, i) => (i === index ? { ...s, art } : s)) }));
+      }),
     removeStepImage: (sceneId: string) => {
       const index = Number(sceneId.slice(5)) - 1;
       updatePlan(

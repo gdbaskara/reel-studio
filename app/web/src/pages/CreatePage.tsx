@@ -72,7 +72,7 @@ export const CreatePage = () => {
   const create = async () => {
     setError(null);
     try {
-      setProgress(options.planMode === "ai" ? "Writing the plan with AI... (up to a minute)" : "Setting up your scenes...");
+      setProgress(options.planMode === "ai" ? "Writing the plan and drawing each step with AI... (1 to 2 minutes)" : "Setting up your scenes...");
       // Save the voice the dropdown shows, so generation never falls back to a different one.
       const omnivoiceVoice = pickedVoice(options.omnivoiceVoice, omnivoiceVoices) ?? options.omnivoiceVoice;
       const project = await api.create({
