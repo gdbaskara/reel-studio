@@ -4,9 +4,9 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "voice:hooks": "node scripts/voiceover.mjs hooks",
-    "voice:atlas": "node scripts/voiceover.mjs atlas",
+    "voice:pandu": "node scripts/voiceover.mjs pandu",
     "render:hooks": "remotion render src/index.ts Hooks out/hooks.mp4",
-    "render:atlas": "remotion render src/index.ts Atlas out/atlas.mp4",
+    "render:pandu": "remotion render src/index.ts Pandu out/pandu.mp4",
     "app": "tsx app/server/main.ts",
     "start:all": "bash scripts/start-all.sh",
     "setup:whisper": "bash scripts/setup-whisper.sh",

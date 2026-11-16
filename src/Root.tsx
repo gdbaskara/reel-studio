@@ -3,15 +3,15 @@ import { Reel } from "./Reel";
 import { buildScenes, FPS, totalFrames } from "./timeline";
 import type { ReelProps } from "./types";
 import { HOOKS_REEL } from "./reels/hooks";
-import { ATLAS_REEL } from "./reels/atlas";
+import { PANDU_REEL } from "./reels/pandu";
 import hooksVoice from "./voiceover/hooks.json";
-import atlasVoice from "./voiceover/atlas.json";
 
 const SIZE = { width: 1080, height: 1920, fps: FPS } as const;
 
 const REELS: readonly (ReelProps & { readonly compositionId: string })[] = [
   { compositionId: "Hooks", spec: HOOKS_REEL, voice: hooksVoice },
-  { compositionId: "Atlas", spec: ATLAS_REEL, voice: atlasVoice },
+  // No committed voiceover for the Pandu demo; `npm run voice:pandu` generates one.
+  { compositionId: "Pandu", spec: PANDU_REEL, voice: {} },
 ];
 
 export const Root = () => (
@@ -32,7 +32,7 @@ export const Root = () => (
       component={Reel}
       {...SIZE}
       durationInFrames={1}
-      defaultProps={{ spec: ATLAS_REEL, voice: atlasVoice, captions: true } as ReelProps}
+      defaultProps={{ spec: PANDU_REEL, voice: {}, captions: true } as ReelProps}
       calculateMetadata={({ props }) => ({ durationInFrames: totalFrames(buildScenes(props.spec, props.voice)) })}
     />
   </>

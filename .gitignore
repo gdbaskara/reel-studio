@@ -9,3 +9,4 @@ coverage/
 tts/omnivoice/.venv/
 __pycache__/
 saved-styles/
+app/web/dist/

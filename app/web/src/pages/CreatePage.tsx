@@ -136,7 +136,7 @@ export const CreatePage = () => {
             rows={3}
             value={prompt}
             maxLength={1500}
-            placeholder="e.g. Cara pakai Atlas untuk karyawan baru: login, bertanya, cek dokumen di Knowledge"
+            placeholder="e.g. Cara pakai Pandu untuk karyawan baru: login, bertanya, cek dokumen di Knowledge"
             onChange={(e) => setPrompt(e.target.value)}
           />
         </label>

@@ -7,7 +7,7 @@ const options = { language: "id", stepCount: 3, planMode: "manual", voiceMode: "
 
 describe("schemas", () => {
   it("accepts a valid create request", () => {
-    expect(CreateRequestSchema.safeParse({ prompt: "Cara pakai Atlas", options }).success).toBe(true);
+    expect(CreateRequestSchema.safeParse({ prompt: "Cara pakai Pandu", options }).success).toBe(true);
   });
 
   it("rejects too many steps and unknown voice modes", () => {
@@ -70,17 +70,17 @@ describe("id checks", () => {
 
 describe("manualPlan", () => {
   it("produces a valid plan with the requested number of steps", () => {
-    const plan = manualPlan("Atlas onboarding", options);
+    const plan = manualPlan("Pandu onboarding", options);
     expect(PlanSchema.safeParse(plan).success).toBe(true);
     expect(plan.steps).toHaveLength(3);
   });
 
   it("starts every scene blank instead of with placeholder text", () => {
-    const plan = manualPlan("Atlas onboarding", options);
+    const plan = manualPlan("Pandu onboarding", options);
     expect(plan.title).toEqual({ lead: "", main: "" });
     expect(plan.outro).toEqual({ main: "", sub: "" });
     expect(plan.steps.map((s) => [s.title, s.note])).toEqual([["", ""], ["", ""], ["", ""]]);
     expect(Object.values(plan.narration)).toEqual(["", "", "", "", ""]);
-    expect(plan.name).toBe("Atlas onboarding");
+    expect(plan.name).toBe("Pandu onboarding");
   });
 });

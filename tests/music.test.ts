@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DUCK_RATIO, FADE_FRAMES, musicCopies, musicVolume, sceneStart, voiceWindows } from "../src/music";
 import { buildScenes, FPS, VOICE_DELAY } from "../src/timeline";
-import { ATLAS_REEL } from "../src/reels/atlas";
+import { PANDU_REEL } from "../src/reels/pandu";
 import { toReelProps } from "../app/shared/toReel";
 import type { Project } from "../app/shared/project";
 
@@ -9,7 +9,7 @@ const clip = (duration: number) => ({ duration, text: "x", words: [] });
 
 describe("voiceWindows", () => {
   it("marks where each voice clip plays on the reel timeline", () => {
-    const scenes = buildScenes(ATLAS_REEL, { title: clip(2), "step-2": clip(3) });
+    const scenes = buildScenes(PANDU_REEL, { title: clip(2), "step-2": clip(3) });
     const step2 = sceneStart(scenes, 2);
     expect(voiceWindows(scenes)).toEqual([
       { start: VOICE_DELAY, end: VOICE_DELAY + 2 * FPS },
@@ -18,13 +18,13 @@ describe("voiceWindows", () => {
   });
 
   it("is empty when no scene has a voice", () => {
-    expect(voiceWindows(buildScenes(ATLAS_REEL, {}))).toEqual([]);
+    expect(voiceWindows(buildScenes(PANDU_REEL, {}))).toEqual([]);
   });
 });
 
 describe("sceneStart", () => {
   it("sums the frames of the scenes before it", () => {
-    const scenes = buildScenes(ATLAS_REEL, {});
+    const scenes = buildScenes(PANDU_REEL, {});
     expect(sceneStart(scenes, 0)).toBe(0);
     expect(sceneStart(scenes, 2)).toBe(scenes[0].frames + scenes[1].frames);
   });

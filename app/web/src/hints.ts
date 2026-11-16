@@ -4,7 +4,7 @@ import type { CreateOptions } from "../../shared/project";
 const HINTS = {
   id: {
     titleLead: "Contoh: Cara pakai",
-    titleMain: "Contoh: Atlas",
+    titleMain: "Contoh: Pandu",
     stepTitle: "Contoh: Login dengan akun kantor",
     stepNote: "Opsional: detail singkat di catatan tempel",
     outroMain: "Contoh: Selamat mencoba",
@@ -14,7 +14,7 @@ const HINTS = {
   },
   en: {
     titleLead: "e.g. How to use",
-    titleMain: "e.g. Atlas",
+    titleMain: "e.g. Pandu",
     stepTitle: "e.g. Sign in with your work account",
     stepNote: "Optional: a short detail on the sticky note",
     outroMain: "e.g. Give it a try",

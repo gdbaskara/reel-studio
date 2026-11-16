@@ -97,8 +97,8 @@ On another port: `OMNIVOICE_PORT=17601 npm run omnivoice`, and set
 | `npm run setup:omnivoice` | Create the OmniVoice Python environment (weights download on first start) |
 | `npm run omnivoice` | Start the local OmniVoice TTS server (`127.0.0.1:17600`) |
 | `npm run studio` | Open Remotion Studio for the demo compositions |
-| `npm run voice:atlas` | Generate voiceover for the demo reel (`--provider=eleven\|omnivoice`) |
-| `npm run render:atlas` | Render the demo reel to `out/atlas.mp4` |
+| `npm run voice:pandu` | Generate voiceover for the demo reel (`--provider=eleven\|omnivoice`) |
+| `npm run render:pandu` | Render the demo reel to `out/pandu.mp4` |
 | `npm test` | Run unit tests (vitest) |
 | `npm run typecheck` | Type-check the whole project |
 

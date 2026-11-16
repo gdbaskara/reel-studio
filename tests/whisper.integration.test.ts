@@ -5,7 +5,7 @@ import { timeWords } from "../app/server/captions/timeWords";
 
 const setup = whisperSetup();
 const installed = Boolean(setup.bin && setup.model);
-const CLIP = join(import.meta.dirname, "..", "public", "vo", "atlas", "step-1.wav");
+const CLIP = join(import.meta.dirname, "..", "public", "vo", "samples", "step-1.wav");
 
 // Runs the real whisper.cpp; skipped where it is not installed (npm run setup:whisper).
 describe.skipIf(!installed)("whisper.cpp integration", () => {

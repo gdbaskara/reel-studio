@@ -12,12 +12,12 @@ const clip = (file: string) => ({ duration: 1, text: "a", words: [], src: `/api/
 
 const original: Project = {
   id: "p-old-000000",
-  name: "Cara pakai Atlas",
-  prompt: "atlas",
+  name: "Cara pakai Pandu",
+  prompt: "pandu",
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-02T00:00:00.000Z",
   options,
-  plan: manualPlan("Cara pakai Atlas", options),
+  plan: manualPlan("Cara pakai Pandu", options),
   voice: { title: clip("title-1.wav"), "step-1": clip("step-1-2.wav") },
   music: { src: "/api/projects/p-old-000000/audio/music-3.m4a", duration: 30, name: "Carefree" },
   render: { status: "done", progress: 1, updatedAt: "2026-01-02T00:00:00.000Z" },
@@ -27,7 +27,7 @@ describe("duplicateOf", () => {
   const copy = duplicateOf(original, "p-new-111111", "2026-11-04T00:00:00.000Z");
 
   it("gets its own id, name, dates and a fresh render state", () => {
-    expect(copy).toMatchObject({ id: "p-new-111111", name: "Cara pakai Atlas (salinan)", createdAt: "2026-11-04T00:00:00.000Z" });
+    expect(copy).toMatchObject({ id: "p-new-111111", name: "Cara pakai Pandu (salinan)", createdAt: "2026-11-04T00:00:00.000Z" });
     expect(copy.render).toEqual({ status: "idle", progress: 0, updatedAt: "2026-11-04T00:00:00.000Z" });
   });
 
